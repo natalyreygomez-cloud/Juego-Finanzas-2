@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>💰 COIN QUEST — Banco Pixel</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0a0a1a;--bg2:#12122a;--panel:#1a1a3a;--panel2:#22224a;
+  --border:#4444aa;--border-hi:#8888ff;
+  --green:#00e676;--green-d:#00994d;
+  --yellow:#ffe000;--yellow-d:#cc9900;
+  --cyan:#00e5ff;--pink:#ff4da6;--red:#ff3333;--orange:#ff8800;
+  --white:#e8e8ff;--gray:#6666aa;
+  /* level accent colors */
+  --lv1:#00e676; --lv1d:#00994d;   /* AHORRO    - green  */
+  --lv2:#ff8800; --lv2d:#994d00;   /* GASTOS    - orange */
+  --lv3:#ff4da6; --lv3d:#991a5c;   /* NEGOCIO   - pink   */
+  --lv4:#00e5ff; --lv4d:#006699;   /* INVERSION - cyan   */
+  --accent:var(--lv1); --accent-d:var(--lv1d);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Press Start 2P',monospace;
+  background:var(--bg);color:var(--white);
+  min-height:100vh;image-rendering:pixelated;overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;
+  background-image:linear-gradient(rgba(68,68,170,.07)1px,transparent 1px),
+    linear-gradient(90deg,rgba(68,68,170,.07)1px,transparent 1px);
+  background-size:16px 16px;pointer-events:none;
+}
+.star-field{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.star{position:absolute;width:4px;height:4px;background:var(--white);
+  image-rendering:pixelated;animation:twinkle var(--d,2s) step-end infinite;}
+@keyframes twinkle{0%,100%{opacity:1;}33%{opacity:.1;}66%{opacity:.6;}}
+
+/* MARQUEE */
+.marquee-bar{position:fixed;top:0;left:0;right:0;z-index:200;
+  background:var(--accent);border-bottom:4px solid var(--accent-d);
+  padding:6px 0;overflow:hidden;white-space:nowrap;transition:background .4s steps(1);}
+.marquee-inner{display:inline-block;animation:marquee 20s linear infinite;
+  font-size:8px;color:#000;letter-spacing:.08em;}
+@keyframes marquee{from{transform:translateX(100vw)}to{transform:translateX(-100%)}}
+
+#game{position:relative;z-index:1;max-width:680px;margin:0 auto;padding:52px 12px 60px;}
+
+/* SCREENS */
+.screen{display:none;}
+.screen.active{display:block;animation:pixelIn .15s steps(4) forwards;}
+@keyframes pixelIn{0%{opacity:0;transform:scale(1.04);}100%{opacity:1;transform:none;}}
+
+/* PX BOX */
+.px-box{
+  background:var(--panel);
+  box-shadow:0 -4px 0 0 var(--border),0 4px 0 0 var(--border),
+    -4px 0 0 0 var(--border),4px 0 0 0 var(--border),
+    -4px -4px 0 0 var(--border),4px -4px 0 0 var(--border),
+    -4px 4px 0 0 var(--border),4px 4px 0 0 var(--border),
+    0 0 24px rgba(68,68,170,.35);
+  padding:20px;position:relative;
+}
+.px-box.glow-accent{
+  box-shadow:0 -4px 0 0 var(--accent-d),0 4px 0 0 var(--accent-d),
+    -4px 0 0 0 var(--accent-d),4px 0 0 0 var(--accent-d),
+    -4px -4px 0 0 var(--accent-d),4px -4px 0 0 var(--accent-d),
+    -4px 4px 0 0 var(--accent-d),4px 4px 0 0 var(--accent-d),
+    0 0 30px rgba(0,230,118,.25);
+}
+
+/* COINS */
+.coin-row{display:flex;gap:8px;justify-content:center;margin:12px 0;}
+.coin{width:16px;height:16px;background:var(--yellow);
+  box-shadow:0 -4px 0 0 var(--yellow-d),0 4px 0 0 var(--yellow-d),
+    -4px 0 0 0 var(--yellow-d),4px 0 0 0 var(--yellow-d);
+  animation:coinSpin 1.2s steps(4) infinite;animation-delay:var(--delay,0s);}
+@keyframes coinSpin{
+  0%{transform:scaleX(1);background:var(--yellow);}
+  25%{transform:scaleX(.3);background:var(--yellow-d);}
+  50%{transform:scaleX(1);background:var(--yellow);}
+  75%{transform:scaleX(.3);background:var(--yellow-d);}
+}
+@keyframes heroIdle{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
+@keyframes titleFlicker{0%,90%,100%{opacity:1;}92%{opacity:.6;}95%{opacity:1;}97%{opacity:.4;}}
+@keyframes blink{0%,49%{opacity:1;}50%,100%{opacity:0;}}
+
+/* ════════════ START SCREEN ════════════ */
+.start-wrap{display:flex;flex-direction:column;align-items:center;}
+.pixel-title{
+  font-size:clamp(12px,4vw,20px);color:var(--yellow);
+  text-shadow:4px 0 0 var(--yellow-d),0 4px 0 var(--yellow-d),4px 4px 0 #000;
+  text-align:center;line-height:2;letter-spacing:.05em;margin-bottom:8px;
+  animation:titleFlicker 3s steps(1) infinite;
+}
+.pixel-subtitle{font-size:7px;color:var(--cyan);text-align:center;line-height:2.2;
+  margin-bottom:16px;text-shadow:2px 2px 0 #003366;}
+.press-start{font-size:9px;color:var(--white);animation:blink .9s steps(1) infinite;
+  margin-top:8px;letter-spacing:.04em;}
+.sprite-row{display:flex;gap:0;justify-content:center;margin:12px 0;height:24px;}
+.sprite-char{font-size:18px;animation:heroIdle 1s steps(2) infinite;animation-delay:var(--d,0s);}
+
+/* LEVEL SELECT GRID */
+.level-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0;}
+.level-card{
+  background:var(--panel2);border:none;padding:14px 10px;
+  font-family:'Press Start 2P',monospace;cursor:pointer;text-align:center;
+  transition:transform .08s steps(1);position:relative;overflow:hidden;
+}
+.level-card:hover{transform:translateY(-4px);}
+.level-card:active{transform:translateY(2px);}
+.level-card .lc-icon{font-size:24px;display:block;margin-bottom:8px;
+  animation:heroIdle 1.2s steps(2) infinite;animation-delay:var(--ld,0s);}
+.level-card .lc-name{font-size:8px;margin-bottom:4px;}
+.level-card .lc-sub{font-size:6px;color:var(--gray);}
+.level-card .lc-badge{
+  position:absolute;top:6px;right:6px;
+  font-size:6px;padding:2px 5px;
+  background:rgba(0,0,0,.4);
+}
+/* per-level colors */
+.lc-1{box-shadow:0 -4px 0 0 var(--lv1d),0 4px 0 0 var(--lv1d),
+  -4px 0 0 0 var(--lv1d),4px 0 0 0 var(--lv1d);}
+.lc-1 .lc-name{color:var(--lv1);}
+.lc-2{box-shadow:0 -4px 0 0 var(--lv2d),0 4px 0 0 var(--lv2d),
+  -4px 0 0 0 var(--lv2d),4px 0 0 0 var(--lv2d);}
+.lc-2 .lc-name{color:var(--lv2);}
+.lc-3{box-shadow:0 -4px 0 0 var(--lv3d),0 4px 0 0 var(--lv3d),
+  -4px 0 0 0 var(--lv3d),4px 0 0 0 var(--lv3d);}
+.lc-3 .lc-name{color:var(--lv3);}
+.lc-4{box-shadow:0 -4px 0 0 var(--lv4d),0 4px 0 0 var(--lv4d),
+  -4px 0 0 0 var(--lv4d),4px 0 0 0 var(--lv4d);}
+.lc-4 .lc-name{color:var(--lv4);}
+.lc-locked{opacity:.4;cursor:not-allowed;}
+.lc-locked:hover{transform:none!important;}
+
+/* ════════════ LEVEL INTRO SCREEN ════════════ */
+.intro-card{
+  background:var(--panel);padding:24px 18px;text-align:center;
+  box-shadow:0 -4px 0 0 var(--accent),0 4px 0 0 var(--accent-d),
+    -4px 0 0 0 var(--accent),4px 0 0 0 var(--accent-d),
+    -4px -4px 0 0 var(--accent),4px -4px 0 0 var(--accent),
+    -4px 4px 0 0 var(--accent-d),4px 4px 0 0 var(--accent-d);
+}
+.intro-icon{font-size:52px;display:block;margin-bottom:12px;
+  animation:heroIdle 1s steps(2) infinite;}
+.intro-title{font-size:clamp(11px,3.5vw,18px);color:var(--accent);
+  text-shadow:3px 3px 0 var(--accent-d);margin-bottom:8px;line-height:1.8;}
+.intro-sub{font-size:7px;color:var(--gray);line-height:2.4;margin-bottom:16px;}
+.intro-objectives{
+  background:var(--panel2);padding:12px;margin-bottom:16px;text-align:left;
+  box-shadow:inset 0 0 0 2px var(--border);
+}
+.intro-obj-title{font-size:6px;color:var(--accent);margin-bottom:8px;}
+.intro-obj-item{font-size:6px;color:var(--white);line-height:2.4;}
+
+/* ════════════ HUD ════════════ */
+.deco-bar{display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;font-size:7px;color:var(--gray);}
+.level-badge{
+  padding:4px 8px;font-size:6px;background:var(--panel2);
+  box-shadow:0 -2px 0 0 var(--accent),0 2px 0 0 var(--accent-d),
+    -2px 0 0 0 var(--accent),2px 0 0 0 var(--accent-d);
+  color:var(--accent);
+}
+.lives{display:flex;gap:4px;}
+.heart{width:12px;height:12px;background:var(--pink);
+  clip-path:polygon(50% 90%,0% 30%,30% 0%,50% 20%,70% 0%,100% 30%);}
+.heart.empty{background:var(--panel2);}
+
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0;}
+.stat-cell{background:var(--panel2);padding:10px 6px;text-align:center;
+  box-shadow:0 -2px 0 0 var(--border),0 2px 0 0 var(--border),
+    -2px 0 0 0 var(--border),2px 0 0 0 var(--border);}
+.stat-label{font-size:6px;color:var(--gray);margin-bottom:6px;letter-spacing:.04em;}
+.stat-val{font-size:9px;}
+.stat-val.g{color:var(--green);text-shadow:1px 1px 0 var(--green-d);}
+.stat-val.c{color:var(--cyan);text-shadow:1px 1px 0 #003366;}
+.stat-val.y{color:var(--yellow);text-shadow:1px 1px 0 var(--yellow-d);}
+
+/* PROGRESS */
+.prog-wrap{margin:12px 0 16px;}
+.prog-label-row{display:flex;justify-content:space-between;
+  font-size:6px;color:var(--gray);margin-bottom:6px;}
+.prog-track{height:16px;background:var(--panel2);
+  box-shadow:inset 0 0 0 4px var(--border);position:relative;overflow:hidden;}
+.prog-fill{
+  height:100%;
+  background:repeating-linear-gradient(90deg,
+    var(--accent) 0px,var(--accent) 12px,var(--accent-d) 12px,var(--accent-d) 16px);
+  transition:width .3s steps(8);box-shadow:inset 0 -4px 0 0 var(--accent-d);
+}
+.prog-icon{position:absolute;right:4px;top:50%;transform:translateY(-50%);
+  font-size:10px;animation:heroIdle .8s steps(2) infinite;}
+
+/* QUESTION CARD */
+.q-card{
+  background:var(--panel);padding:16px;
+  box-shadow:0 -4px 0 0 var(--border-hi),0 4px 0 0 var(--border),
+    -4px 0 0 0 var(--border-hi),4px 0 0 0 var(--border),
+    -4px -4px 0 0 var(--border-hi),4px -4px 0 0 var(--border-hi),
+    -4px 4px 0 0 var(--border),4px 4px 0 0 var(--border);
+  animation:pixelIn .12s steps(3) forwards;
+}
+.q-header{display:flex;align-items:center;gap:12px;margin-bottom:12px;
+  padding-bottom:10px;border-bottom:4px solid var(--border);}
+.q-emoji-box{width:52px;height:52px;flex-shrink:0;background:var(--panel2);
+  display:flex;align-items:center;justify-content:center;font-size:26px;
+  box-shadow:0 -2px 0 0 var(--border-hi),0 2px 0 0 var(--border),
+    -2px 0 0 0 var(--border-hi),2px 0 0 0 var(--border);}
+.q-num{font-size:6px;color:var(--accent);margin-bottom:4px;letter-spacing:.06em;}
+.q-title{font-size:9px;color:var(--white);line-height:1.8;letter-spacing:.02em;}
+.q-desc{font-size:7px;color:#aab0dd;line-height:2.2;background:var(--panel2);
+  padding:12px;margin-bottom:12px;
+  box-shadow:inset 0 0 0 2px var(--border),inset 4px 4px 0 0 rgba(255,255,255,.04);
+  border-left:4px solid var(--accent);}
+
+/* CHOICES */
+.choices{display:flex;flex-direction:column;gap:8px;}
+.choice-btn{
+  background:var(--panel2);border:none;padding:12px 14px;text-align:left;
+  cursor:pointer;font-family:'Press Start 2P',monospace;
+  box-shadow:0 -2px 0 0 #4444aa,0 2px 0 0 #22224a,
+    -2px 0 0 0 #4444aa,2px 0 0 0 #22224a;
+  transition:transform .06s steps(1),box-shadow .06s steps(1);position:relative;
+}
+.choice-btn::before{content:'▶';position:absolute;left:10px;top:50%;
+  transform:translateY(-50%);font-size:8px;color:var(--border-hi);
+  opacity:0;transition:opacity .06s steps(1);}
+.choice-btn:hover{background:#2a2a5a;transform:translateX(4px);
+  box-shadow:0 -2px 0 0 var(--accent),0 2px 0 0 var(--accent-d),
+    -2px 0 0 0 var(--accent),2px 0 0 0 var(--accent-d);}
+.choice-btn:hover::before{opacity:1;}
+.choice-btn:active{transform:translateX(2px) translateY(2px);}
+.c-title{font-size:8px;color:var(--white);margin-bottom:5px;padding-left:18px;line-height:1.8;}
+.c-hint{font-size:6px;color:var(--gray);padding-left:18px;line-height:1.8;}
+.choice-btn.dimmed{opacity:.28;cursor:default;transform:none!important;}
+.choice-btn.chosen{background:#002200;
+  box-shadow:0 -2px 0 0 var(--green),0 2px 0 0 var(--green-d),
+    -2px 0 0 0 var(--green),2px 0 0 0 var(--green-d);}
+.choice-btn.chosen .c-title{color:var(--green);}
+
+/* FEEDBACK */
+.feedback{display:none;padding:12px;margin-top:10px;font-size:7px;line-height:2.2;
+  animation:pixelIn .1s steps(2) forwards;}
+.feedback.good{background:#002200;color:var(--green);
+  box-shadow:0 -2px 0 0 var(--green),0 2px 0 0 var(--green-d),
+    -2px 0 0 0 var(--green),2px 0 0 0 var(--green-d);}
+.feedback.bad{background:#220000;color:#ff8888;
+  box-shadow:0 -2px 0 0 var(--red),0 2px 0 0 #660000,
+    -2px 0 0 0 var(--red),2px 0 0 0 #660000;}
+.feedback.ok{background:#221100;color:var(--yellow);
+  box-shadow:0 -2px 0 0 var(--orange),0 2px 0 0 #663300,
+    -2px 0 0 0 var(--orange),2px 0 0 0 #663300;}
+.fb-head{font-size:8px;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+
+/* TIP BOX */
+.tip-box{display:none;background:#001133;padding:10px 12px;font-size:6px;
+  color:var(--cyan);line-height:2.4;margin-top:8px;
+  box-shadow:0 -2px 0 0 var(--cyan),0 2px 0 0 #003366,
+    -2px 0 0 0 var(--cyan),2px 0 0 0 #003366;}
+.tip-box::before{content:'[TIP] ';color:var(--yellow);}
+
+/* BUTTONS */
+.btn-pixel{
+  display:block;background:var(--green);color:#000;border:none;
+  padding:14px 24px;font-family:'Press Start 2P',monospace;font-size:9px;
+  cursor:pointer;letter-spacing:.06em;
+  box-shadow:0 -4px 0 0 var(--green-d),0 4px 0 0 #004d26,
+    -4px 0 0 0 var(--green-d),4px 0 0 0 var(--green-d),
+    -4px -4px 0 0 var(--green-d),4px -4px 0 0 var(--green-d),
+    -4px 4px 0 0 #004d26,4px 4px 0 0 #004d26;
+  transition:transform .08s steps(1),box-shadow .08s steps(1);margin-top:8px;
+}
+.btn-pixel:hover{transform:translateY(-4px);
+  box-shadow:0 -4px 0 0 var(--green-d),0 8px 0 0 #004d26,
+    -4px 0 0 0 var(--green-d),4px 0 0 0 var(--green-d),
+    -4px -4px 0 0 var(--green-d),4px -4px 0 0 var(--green-d),
+    -4px 8px 0 0 #004d26,4px 8px 0 0 #004d26;}
+.btn-pixel:active{transform:translateY(4px);}
+.btn-pixel.blue{background:var(--cyan);color:#000;
+  box-shadow:0 -4px 0 0 #006699,0 4px 0 0 #003366,
+    -4px 0 0 0 #006699,4px 0 0 0 #006699,
+    -4px -4px 0 0 #006699,4px -4px 0 0 #006699,
+    -4px 4px 0 0 #003366,4px 4px 0 0 #003366;}
+.btn-pixel.blue:hover{transform:translateY(-4px);
+  box-shadow:0 -4px 0 0 #006699,0 8px 0 0 #003366,
+    -4px 0 0 0 #006699,4px 0 0 0 #006699,
+    -4px -4px 0 0 #006699,4px -4px 0 0 #006699,
+    -4px 8px 0 0 #003366,4px 8px 0 0 #003366;}
+.btn-pixel.gray{background:#444488;color:var(--white);
+  box-shadow:0 -4px 0 0 #222266,0 4px 0 0 #111133,
+    -4px 0 0 0 #222266,4px 0 0 0 #222266,
+    -4px -4px 0 0 #222266,4px -4px 0 0 #222266,
+    -4px 4px 0 0 #111133,4px 4px 0 0 #111133;}
+.btn-next{
+  display:none;width:100%;margin-top:12px;background:#000088;color:var(--white);
+  border:none;padding:14px;font-family:'Press Start 2P',monospace;font-size:8px;
+  cursor:pointer;letter-spacing:.06em;
+  box-shadow:0 -4px 0 0 var(--border-hi),0 4px 0 0 #000044,
+    -4px 0 0 0 var(--border-hi),4px 0 0 0 #000044,
+    -4px -4px 0 0 var(--border-hi),4px -4px 0 0 var(--border-hi),
+    -4px 4px 0 0 #000044,4px 4px 0 0 #000044;
+  transition:transform .06s steps(1);
+}
+.btn-next:hover{transform:translateY(-4px);}
+.btn-next:active{transform:translateY(4px);}
+
+/* LEVEL COMPLETE SCREEN */
+.lc-screen{background:var(--panel);padding:24px 18px;text-align:center;
+  box-shadow:0 -4px 0 0 var(--accent),0 4px 0 0 var(--accent-d),
+    -4px 0 0 0 var(--accent),4px 0 0 0 var(--accent-d),
+    -4px -4px 0 0 var(--accent),4px -4px 0 0 var(--accent),
+    -4px 4px 0 0 var(--accent-d),4px 4px 0 0 var(--accent-d);}
+.lc-big{font-size:52px;display:block;animation:trophyPop .4s steps(4) forwards;margin-bottom:8px;}
+@keyframes trophyPop{0%{transform:scale(0);}25%{transform:scale(1.4);}
+  50%{transform:scale(.9);}75%{transform:scale(1.1);}100%{transform:scale(1);}}
+.lc-title{font-size:clamp(9px,3vw,14px);color:var(--accent);
+  text-shadow:3px 3px 0 var(--accent-d);margin-bottom:8px;line-height:1.8;
+  animation:titleFlicker 2s steps(1) infinite;}
+.lc-msg{font-size:7px;color:var(--gray);line-height:2.4;margin-bottom:16px;}
+
+/* END SCREEN */
+.end-wrap{text-align:center;}
+.trophy-px{font-size:52px;display:block;
+  animation:trophyPop .4s steps(4) forwards;margin-bottom:8px;}
+.end-title{font-size:clamp(8px,3vw,13px);color:var(--yellow);
+  text-shadow:3px 3px 0 var(--yellow-d);line-height:1.8;margin-bottom:8px;
+  animation:titleFlicker 2s steps(1) infinite;}
+.end-msg{font-size:7px;color:#aab0dd;line-height:2.4;margin-bottom:16px;}
+
+/* PARTICLES */
+.px-particle{position:fixed;z-index:999;pointer-events:none;
+  width:8px;height:8px;image-rendering:pixelated;
+  animation:pxFly var(--dur,.9s) steps(8) forwards;}
+@keyframes pxFly{0%{opacity:1;transform:translate(0,0) scale(1);}
+  100%{opacity:0;transform:translate(var(--dx,0px),var(--dy,-80px)) scale(0);}}
+.score-flash{position:fixed;z-index:500;font-family:'Press Start 2P',monospace;
+  font-size:14px;pointer-events:none;animation:scoreFloat .8s steps(8) forwards;
+  text-shadow:2px 2px 0 #000;}
+@keyframes scoreFloat{0%{opacity:1;transform:translateY(0);}
+  100%{opacity:0;transform:translateY(-60px);}}
+.dialog-cursor{display:inline-block;width:8px;height:8px;background:var(--white);
+  animation:blink .6s steps(1) infinite;vertical-align:middle;margin-left:4px;}
+
+/* SOUND BTN */
+.snd-btn{position:fixed;top:36px;right:8px;z-index:300;background:#000044;
+  color:var(--gray);border:none;padding:6px 10px;
+  font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;
+  box-shadow:0 -2px 0 0 var(--border),0 2px 0 0 #000022,
+    -2px 0 0 0 var(--border),2px 0 0 0 #000022;}
+.snd-btn:hover{color:var(--white);}
+
+@media(max-width:480px){
+  .pixel-title{font-size:10px;}
+  .stat-val{font-size:7px;}
+  .q-title{font-size:7px;}
+  .btn-pixel{font-size:7px;padding:12px 16px;}
+  .level-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="marquee-bar" id="marquee-bar">
+  <div class="marquee-inner" id="marquee-txt">
+    ★ COIN QUEST ★ AHORRO ★ GASTOS ★ NEGOCIO ★ INVERSION ★ APRENDE TUS FINANZAS ★ 
+    COIN QUEST ★ AHORRO ★ GASTOS ★ NEGOCIO ★ INVERSION ★ APRENDE TUS FINANZAS ★&nbsp;&nbsp;
+  </div>
+</div>
+
+<div class="star-field" id="starField"></div>
+<button class="snd-btn" id="sndBtn" onclick="toggleSound()">♪ ON</button>
+
+<div id="game">
+
+  <!-- ═══ START ═══ -->
+  <div id="start-screen" class="screen active">
+    <div class="start-wrap">
+      <div class="px-box" style="width:100%;text-align:center;padding:24px 16px;">
+        <div class="sprite-row">
+          <span class="sprite-char" style="--d:0s">🧒</span>
+          <span class="sprite-char" style="--d:.2s">💰</span>
+          <span class="sprite-char" style="--d:.4s">🏦</span>
+          <span class="sprite-char" style="--d:.1s">⭐</span>
+          <span class="sprite-char" style="--d:.3s">🎮</span>
+        </div>
+        <div class="pixel-title">COIN<br>QUEST</div>
+        <div class="coin-row">
+          <div class="coin" style="--delay:0s"></div>
+          <div class="coin" style="--delay:.15s"></div>
+          <div class="coin" style="--delay:.3s"></div>
+          <div class="coin" style="--delay:.45s"></div>
+          <div class="coin" style="--delay:.6s"></div>
+        </div>
+        <div class="pixel-subtitle">
+          BANCO PIXEL — EDICION RETRO<br>
+          ▸ 4 MUNDOS — 32 MISIONES<br>
+          ▸ AHORRO · GASTOS · NEGOCIO · INVERSION<br>
+          ▸ APRENDE Y CONQUISTA TUS FINANZAS
+        </div>
+        <button class="btn-pixel" onclick="goToSelect()" style="width:100%;">
+          ▶ &nbsp;INSERT COIN — EMPEZAR
+        </button>
+        <div class="press-start" style="margin-top:16px;">PRESS START TO PLAY</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ LEVEL SELECT ═══ -->
+  <div id="select-screen" class="screen">
+    <div class="px-box" style="width:100%;padding:20px 16px;">
+      <div style="text-align:center;margin-bottom:16px;">
+        <div class="pixel-title" style="font-size:14px;">SELECT WORLD</div>
+        <div style="font-size:7px;color:var(--gray);margin-top:4px;">ELIGE TU SIGUIENTE MISION</div>
+      </div>
+      <div class="level-grid" id="level-grid">
+        <!-- filled by JS -->
+      </div>
+      <div style="font-size:6px;color:var(--gray);text-align:center;margin-top:12px;" id="total-score-display">
+        SCORE TOTAL: <span id="total-score-val" style="color:var(--yellow)">000</span> PTS
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ LEVEL INTRO ═══ -->
+  <div id="intro-screen" class="screen">
+    <div class="intro-card" id="intro-card">
+      <span class="intro-icon" id="intro-icon">💰</span>
+      <div class="intro-title" id="intro-title">MUNDO 1</div>
+      <div class="intro-sub" id="intro-sub">DESCRIPCION DEL MUNDO</div>
+      <div class="intro-objectives" id="intro-obj"></div>
+      <button class="btn-pixel" onclick="startLevel()" style="width:100%;">
+        ▶ &nbsp;INICIAR MUNDO
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══ GAME ═══ -->
+  <div id="game-screen" class="screen">
+    <div class="deco-bar">
+      <div class="level-badge" id="level-badge">LVL 1</div>
+      <div style="font-size:6px;color:var(--accent)" id="world-name-hud">AHORRO</div>
+      <div class="lives" id="lives-row">
+        <div class="heart"></div><div class="heart"></div><div class="heart"></div>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-cell">
+        <div class="stat-label">💵 CREDITOS</div>
+        <div class="stat-val g" id="hud-money">$50.000</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-label">🏦 BOVEDA</div>
+        <div class="stat-val c" id="hud-savings">$0</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-label">⭐ SCORE</div>
+        <div class="stat-val y" id="hud-score">000</div>
+      </div>
+    </div>
+    <div class="prog-wrap">
+      <div class="prog-label-row">
+        <span id="prog-label">MISION 1-1</span>
+        <span id="prog-pct">0%</span>
+      </div>
+      <div class="prog-track">
+        <div class="prog-fill" id="prog-fill" style="width:0%"></div>
+        <div class="prog-icon" id="prog-icon">🧒</div>
+      </div>
+    </div>
+    <div id="scene-container"></div>
+  </div>
+
+  <!-- ═══ LEVEL COMPLETE ═══ -->
+  <div id="levelcomplete-screen" class="screen">
+    <div class="lc-screen" id="lc-panel">
+      <span class="lc-big" id="lc-emoji">🏅</span>
+      <div class="lc-title" id="lc-title">MUNDO COMPLETADO!</div>
+      <div class="lc-msg" id="lc-msg"></div>
+      <div class="coin-row">
+        <div class="coin" style="--delay:0s"></div><div class="coin" style="--delay:.1s"></div>
+        <div class="coin" style="--delay:.2s"></div><div class="coin" style="--delay:.3s"></div>
+        <div class="coin" style="--delay:.4s"></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-cell">
+          <div class="stat-label">CREDITOS</div>
+          <div class="stat-val g" id="lc-money">$0</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">BOVEDA</div>
+          <div class="stat-val c" id="lc-savings">$0</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">SCORE</div>
+          <div class="stat-val y" id="lc-score">0</div>
+        </div>
+      </div>
+      <button class="btn-pixel" onclick="goToSelect()" style="width:100%;">
+        ▶ &nbsp;SIGUIENTE MUNDO
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══ FINAL END ═══ -->
+  <div id="end-screen" class="screen">
+    <div class="px-box glow-accent" style="text-align:center;">
+      <div class="end-wrap">
+        <span class="trophy-px" id="end-emoji">🏆</span>
+        <div class="coin-row">
+          <div class="coin" style="--delay:0s"></div><div class="coin" style="--delay:.1s"></div>
+          <div class="coin" style="--delay:.2s"></div><div class="coin" style="--delay:.3s"></div>
+          <div class="coin" style="--delay:.4s"></div><div class="coin" style="--delay:.5s"></div>
+        </div>
+        <div class="end-title" id="end-title">GAME CLEAR!</div>
+        <div class="end-msg" id="end-msg"></div>
+        <div class="stat-row">
+          <div class="stat-cell">
+            <div class="stat-label">CREDITOS</div>
+            <div class="stat-val g" id="fin-money">$0</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-label">BOVEDA</div>
+            <div class="stat-val c" id="fin-savings">$0</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-label">SCORE TOTAL</div>
+            <div class="stat-val y" id="fin-score">0</div>
+          </div>
+        </div>
+        <button class="btn-pixel" onclick="fullReset()" style="width:100%;margin-top:8px;">
+          ↺ &nbsp;NUEVA PARTIDA
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- #game -->
+
+<script>
+/* ════════════ STARS ════════════ */
+(function(){
+  const sf=document.getElementById('starField');
+  for(let i=0;i<80;i++){
+    const s=document.createElement('div');s.className='star';
+    s.style.left=Math.random()*100+'vw';s.style.top=Math.random()*100+'vh';
+    s.style.setProperty('--d',(1+Math.random()*3).toFixed(1)+'s');
+    s.style.animationDelay=(Math.random()*3).toFixed(1)+'s';
+    if(Math.random()>.7){s.style.width='8px';s.style.height='8px';}
+    sf.appendChild(s);
+  }
+})();
+
+/* ════════════ AUDIO ════════════ */
+let AC=null,soundOn=true;
+function gc(){if(!AC)AC=new(window.AudioContext||window.webkitAudioContext)();return AC;}
+function chip(f,t,d,v=.22,dl=0,vib=0){
+  if(!soundOn)return;
+  try{
+    const c=gc(),o=c.createOscillator(),g=c.createGain();
+    if(vib>0){const lfo=c.createOscillator(),lg=c.createGain();
+      lfo.frequency.value=vib;lg.gain.value=8;
+      lfo.connect(lg);lg.connect(o.frequency);
+      lfo.start(c.currentTime+dl);lfo.stop(c.currentTime+dl+d+.1);}
+    o.connect(g);g.connect(c.destination);o.type=t;
+    o.frequency.setValueAtTime(f,c.currentTime+dl);
+    g.gain.setValueAtTime(v,c.currentTime+dl);
+    g.gain.setValueAtTime(v,c.currentTime+dl+d*.7);
+    g.gain.linearRampToValueAtTime(0,c.currentTime+dl+d);
+    o.start(c.currentTime+dl);o.stop(c.currentTime+dl+d+.05);
+  }catch(e){}
+}
+const sfxStart=()=>[261,330,392,523].forEach((f,i)=>chip(f,'square',.14,.22,i*.09));
+const sfxGood=()=>{chip(523,'square',.08,.22);chip(659,'square',.08,.22,.09);chip(784,'square',.08,.22,.18);chip(1046,'square',.15,.22,.27);};
+const sfxBad=()=>{chip(220,'sawtooth',.12,.2);chip(180,'sawtooth',.12,.2,.13);chip(150,'sawtooth',.18,.2,.26);};
+const sfxOk=()=>{chip(440,'square',.09,.18);chip(523,'square',.12,.18,.1);};
+const sfxClick=()=>chip(880,'square',.04,.15);
+const sfxWin=()=>[523,659,784,1046,784,1046,1318].forEach((f,i)=>chip(f,'square',.16,.22,i*.11,i>4?6:0));
+const sfxLevelUp=()=>[392,523,659,784,1046].forEach((f,i)=>chip(f,'square',.14,.25,i*.1));
+const sfxCoin=()=>{chip(988,'square',.05,.18);chip(1318,'square',.08,.18,.06);};
+function toggleSound(){soundOn=!soundOn;document.getElementById('sndBtn').textContent=soundOn?'♪ ON':'♪ OFF';if(soundOn)sfxClick();}
+
+/* ════════════ PARTICLES ════════════ */
+function spawnParticles(quality){
+  const colors=quality==='good'?['#00e676','#ffe000','#00e5ff']:
+               quality==='bad'?['#ff3333','#ff8800','#880000']:['#ffe000','#ff8800','#fff'];
+  for(let i=0;i<(quality==='good'?12:5);i++){
+    setTimeout(()=>{
+      const p=document.createElement('div');p.className='px-particle';
+      const a=Math.random()*Math.PI*2,dist=40+Math.random()*80;
+      p.style.setProperty('--dx',Math.cos(a)*dist+'px');
+      p.style.setProperty('--dy',(-60-Math.random()*80)+'px');
+      p.style.setProperty('--dur',(0.6+Math.random()*.6)+'s');
+      p.style.background=colors[Math.floor(Math.random()*colors.length)];
+      p.style.left=(window.innerWidth/2)+'px';p.style.top=(window.innerHeight*.45)+'px';
+      document.body.appendChild(p);setTimeout(()=>p.remove(),900);
+    },i*60);
+  }
+}
+function scoreFlash(pts,quality){
+  const el=document.createElement('div');el.className='score-flash';
+  el.textContent=(pts>0?'+':'')+pts;
+  el.style.color=quality==='good'?'#00e676':quality==='bad'?'#ff3333':'#ffe000';
+  el.style.left=(window.innerWidth/2-20)+'px';el.style.top=(window.innerHeight*.38)+'px';
+  document.body.appendChild(el);setTimeout(()=>el.remove(),900);
+}
+
+/* ════════════ LEVEL COLORS ════════════ */
+const LEVEL_COLORS=[
+  {accent:'#00e676',accentD:'#00994d',marquee:'#00e676'},
+  {accent:'#ff8800',accentD:'#994d00',marquee:'#ff8800'},
+  {accent:'#ff4da6',accentD:'#991a5c',marquee:'#ff4da6'},
+  {accent:'#00e5ff',accentD:'#006699',marquee:'#00e5ff'},
+];
+function applyLevelTheme(li){
+  const c=LEVEL_COLORS[li];
+  document.documentElement.style.setProperty('--accent',c.accent);
+  document.documentElement.style.setProperty('--accent-d',c.accentD);
+  document.getElementById('marquee-bar').style.background=c.marquee;
+  document.getElementById('marquee-bar').style.borderBottomColor=c.accentD;
+}
+
+/* ════════════ GAME DATA ════════════ */
+const fmt=n=>'$'+Math.abs(n).toLocaleString('es-CO');
+
+const LEVELS=[
+  /* ══════════════════════════════════
+     MUNDO 1 — AHORRO
+  ══════════════════════════════════ */
+  {
+    id:1,name:'AHORRO',icon:'🏦',
+    color:'lv1',
+    desc:'APRENDE EL ARTE DE GUARDAR DINERO.\nEL AHORRO ES TU ESCUDO CONTRA\nLAS EMERGENCIAS Y TU LLAVE\nHACIA EL FUTURO.',
+    objectives:[
+      'ENTENDER POR QUE AHORRAR ES IMPORTANTE',
+      'APRENDER CUANTO Y COMO AHORRAR',
+      'CONSTRUIR HABITOS DE AHORRO SOLIDOS',
+    ],
+    scenes:[
+      {emoji:'🛒',title:'LA MESADA LLEGO',
+       desc:'RECIBES $50.000 DE MESADA. EN EL CAMINO VES UNA TIENDA CON SNACKS. QUE HACES CON TU DINERO?',
+       choices:[
+         {text:'GUARDAR TODO EN MI ALCANCIA',hint:'SIN GASTAR — 100% AHORRO',money:0,savings:50000,score:20,quality:'good',fb:'EXCELENTE! GUARDAR TODO DEMUESTRA MAXIMA DISCIPLINA. EL AHORRO ES LA BASE DE LAS FINANZAS.'},
+         {text:'GASTAR $10K Y GUARDAR $40K',hint:'20% GASTO — 80% AHORRO',money:10000,savings:40000,score:15,quality:'good',fb:'MUY BIEN! GUARDAR EL 80% ES EXCELENTE. ESTA ES LA REGLA IDEAL PARA PRINCIPIANTES.'},
+         {text:'GASTAR $25K Y GUARDAR $25K',hint:'50% GASTO — 50% AHORRO',money:25000,savings:25000,score:10,quality:'ok',fb:'CORRECTO PERO MEJORABLE. INTENTA AHORRAR MAS DE LO QUE GASTAS.'},
+         {text:'GASTAR TODO EN SNACKS',hint:'100% GASTO — 0% AHORRO',money:50000,savings:0,score:0,quality:'bad',fb:'SIN AHORROS NO TENDRAS NADA CUANDO LO NECESITES. EL AHORRO TE PROTEGE.'}
+       ],tip:'REGLA DE ORO: AHORRA AL MENOS 20% DE LO QUE RECIBES.'},
+      {emoji:'🐷',title:'LA ALCANCIA ROTA',
+       desc:'TIENES $80.000 EN TU ALCANCIA. TU AMIGO TE OFRECE PRESTARLE $50.000 SIN FECHA DE PAGO. QUE HACES?',
+       choices:[
+         {text:'NO PRESTO — ES MI FONDO DE EMERGENCIA',hint:'PROTEJO MIS AHORROS',money:0,savings:0,score:20,quality:'good',fb:'PERFECTO! TUS AHORROS SON TU SEGURIDAD. NO LOS PRESTES SIN FECHA CLARA DE DEVOLUCION.'},
+         {text:'PRESTO $20K — GUARDO EL RESTO',hint:'PRESTO UNA PARTE PEQUEÑA',money:0,savings:-20000,score:10,quality:'ok',fb:'PUEDES HACERLO PERO CON RIESGO. SIEMPRE ESTABLECE UNA FECHA DE PAGO CUANDO PRESTAS.'},
+         {text:'PRESTO TODO LO QUE PIDE',hint:'PRESTO $50.000 SIN FECHA',money:0,savings:-50000,score:0,quality:'bad',fb:'SIN FECHA DE PAGO PUEDES PERDER TUS AHORROS. LAS DEUDAS SIN PLAZO RARA VEZ SE PAGAN.'},
+         {text:'LE REGALO EL DINERO',hint:'DOY LOS $50K COMO REGALO',money:0,savings:-50000,score:-5,quality:'bad',fb:'REGALAR TUS AHORROS TE DEJA SIN PROTECCION. LA GENEROSIDAD DEBE TENER LIMITES.'}
+       ],tip:'TUS AHORROS SON TU ESCUDO. PROTEGELOS CON CUIDADO.'},
+      {emoji:'💳',title:'LA CUENTA DE AHORROS',
+       desc:'EL BANCO TE OFRECE ABRIR UNA CUENTA DE AHORROS QUE DA 3% DE INTERES AL ANO. TIENES $60K. QUE HACES?',
+       choices:[
+         {text:'ABRO LA CUENTA Y DEPOSITO TODO',hint:'3% DE INTERES = $1.800/ANO',money:0,savings:61800,score:20,quality:'good',fb:'EXCELENTE DECISION! UNA CUENTA DE AHORROS HACE CRECER TU DINERO AUTOMATICAMENTE CON INTERES.'},
+         {text:'ABRO LA CUENTA CON LA MITAD',hint:'DEPOSITO $30K — GUARDO $30K',money:30000,savings:30900,score:14,quality:'ok',fb:'BIEN! AUNQUE HABRIA SIDO MEJOR DEPOSITAR TODO PARA GANAR MAS INTERES.'},
+         {text:'PREFIERO GUARDARLO EN CASA',hint:'DINERO BAJO EL COLCHON',money:60000,savings:0,score:2,quality:'bad',fb:'EL DINERO EN CASA NO CRECE Y PUEDE PERDERSE. UNA CUENTA DE AHORROS ES MUCHO MAS SEGURA.'},
+         {text:'ME LO GASTO ANTES DE ABRIR LA CUENTA',hint:'GASTO TODO PRIMERO',money:60000,savings:0,score:-5,quality:'bad',fb:'GASTAR ANTES DE AHORRAR ES EL ERROR MAS COMUN. PRIMERO AHORRA, LUEGO GASTA LO QUE SOBRE.'}
+       ],tip:'CUENTA DE AHORROS = TU DINERO CRECE SOLO CON INTERES. USALA!'},
+      {emoji:'📅',title:'AHORRO AUTOMATICO',
+       desc:'TU BANCO OFRECE DEBITO AUTOMATICO: CADA MES SACA $15.000 Y LOS PONE EN AHORROS SIN QUE HAGAS NADA. LO ACTIVAS?',
+       choices:[
+         {text:'SI — LO ACTIVO HOY MISMO',hint:'AHORRO AUTOMATICO SIN ESFUERZO',money:0,savings:15000,score:20,quality:'good',fb:'GENIAL! EL AHORRO AUTOMATICO ES EL MEJOR TRUCO: AHORRAS SIN PENSAR EN ELLO. HABITO GANADOR!'},
+         {text:'LO ACTIVO PERO CON SOLO $5K',hint:'EMPIEZO PEQUENO',money:0,savings:5000,score:12,quality:'ok',fb:'ESTA BIEN EMPEZAR PEQUENO. LO IMPORTANTE ES CREAR EL HABITO. SUBE EL MONTO CUANDO PUEDAS.'},
+         {text:'PREFIERO AHORRAR MANUALMENTE',hint:'YO DECIDO CUANDO AHORRAR',money:0,savings:5000,score:6,quality:'ok',fb:'AHORRAR MANUAL FUNCIONA PERO ES MAS DIFICIL. EL AUTOMATICO ES MAS EFECTIVO PARA LA MAYORIA.'},
+         {text:'NO — PREFIERO TENER EL CONTROL TOTAL',hint:'NO ACTIVO NADA',money:0,savings:0,score:0,quality:'bad',fb:'SIN AUTOMATISMO ES FACIL OLVIDAR O GASTAR EN LUGAR DE AHORRAR. EL HABITO LO ES TODO.'}
+       ],tip:'AHORRO AUTOMATICO = EL MEJOR HABITO FINANCIERO. CONFIGURA Y OLVIDA!'},
+      {emoji:'🎂',title:'EL CUMPLEANOS',
+       desc:'TE REGALARON $100.000 EN TU CUMPLEANOS. ES DINERO INESPERADO. QUE DECIDES HACER?',
+       choices:[
+         {text:'50% AHORRO — 30% INVERSION — 20% GASTO',hint:'DISTRIBUCION INTELIGENTE',money:20000,savings:80000,score:20,quality:'good',fb:'DISTRIBUCION PERFECTA! APROVECHAR UN INGRESO EXTRA PARA AHORRAR E INVERTIR ES SABIDURIA FINANCIERA.'},
+         {text:'TODO A LA CUENTA DE AHORROS',hint:'100% AL AHORRO',money:0,savings:100000,score:18,quality:'good',fb:'EXCELENTE DISCIPLINA! GUARDAR UN REGALO INESPERADO ES UNA DECISION MUY MADURA.'},
+         {text:'ME LO GASTO FESTEJANDO',hint:'100% EN CELEBRACION',money:100000,savings:0,score:0,quality:'bad',fb:'ES TENTADOR PERO DESPERDICIAR UN INGRESO EXTRA ES UNA OPORTUNIDAD PERDIDA. AHORRA PRIMERO.'},
+         {text:'LO PRESTO A VARIOS AMIGOS',hint:'REPARTO EL DINERO',money:0,savings:0,score:-5,quality:'bad',fb:'PRESTAR DINERO SIN PLAN ES ARRIESGADO. ES MEJOR AHORRARLO O INVERTIRLO.'}
+       ],tip:'INGRESOS EXTRAS = OPORTUNIDAD DORADA PARA AHORRAR MAS. NO LOS DESPERDICIES!'},
+      {emoji:'🔒',title:'EL FONDO INTOCABLE',
+       desc:'LLEVAS 6 MESES AHORRANDO Y TIENES $120.000. VES UNAS ZAPATILLAS QUE QUIERES — CUESTAN $110.000. QUE HACES?',
+       choices:[
+         {text:'NO LAS COMPRO — ES MI FONDO DE EMERGENCIA',hint:'PROTEJO MIS AHORROS',money:0,savings:0,score:20,quality:'good',fb:'INCREIBLE DISCIPLINA! EL FONDO DE EMERGENCIA NO ES PARA CAPRICHOS SINO PARA EMERGENCIAS REALES.'},
+         {text:'ESPERO A AHORRAR DINERO EXTRA PARA ELLAS',hint:'AHORRO ESPECIFICO PARA COMPRARLAS',money:0,savings:10000,score:18,quality:'good',fb:'MUY INTELIGENTE! AHORRAR PARA UN OBJETIVO ESPECIFICO SIN TOCAR EL FONDO DE EMERGENCIA ES PERFECTO.'},
+         {text:'LAS COMPRO — ME LAS MEREZCO',hint:'USO MIS AHORROS',money:-110000,savings:0,score:2,quality:'bad',fb:'USASTE TU FONDO DE EMERGENCIA PARA UN CAPRICHO. AHORA ESTAS SIN PROTECCION SI PASA ALGO.'},
+         {text:'PIDO CREDITO Y PAGO CON CUOTAS',hint:'DEUDA PARA ZAPATILLAS',money:0,savings:0,score:-5,quality:'bad',fb:'ENDEUDARSE PARA ROPA ES UNA TRAMPA. LOS INTERESES HACEN QUE PAGUES MUCHO MAS DEL PRECIO REAL.'}
+       ],tip:'FONDO DE EMERGENCIA = SOLO PARA EMERGENCIAS. NO PARA CAPRICHOS!'},
+      {emoji:'📊',title:'CUANTO AHORRAR?',
+       desc:'GANAS $200.000 AL MES. UN EXPERTO DICE QUE DEBERIAS AHORRAR ENTRE 20% Y 30% DE TUS INGRESOS. CUANTO GUARDAS?',
+       choices:[
+         {text:'$60.000 AL MES — 30% DE MIS INGRESOS',hint:'MAXIMO RECOMENDADO',money:140000,savings:60000,score:20,quality:'good',fb:'EXCELENTE! AHORRAR 30% ES OPTIMO. EN UN ANO TENDRAS $720.000 GUARDADOS. HABITO DE CAMPEONES!'},
+         {text:'$40.000 AL MES — 20% DE MIS INGRESOS',hint:'MINIMO RECOMENDADO',money:160000,savings:40000,score:16,quality:'good',fb:'MUY BIEN! CUMPLES CON LA REGLA DE ORO DEL 20%. EN UN ANO TENDRAS $480.000 AHORRADOS.'},
+         {text:'$10.000 AL MES — 5% DE MIS INGRESOS',hint:'MUY POCO',money:190000,savings:10000,score:6,quality:'ok',fb:'ES MEJOR QUE NADA PERO MUY POCO. TRATA DE AUMENTAR GRADUALMENTE HASTA EL 20%.'},
+         {text:'NADA — AHORRO CUANDO PUEDA',hint:'SIN PLAN DE AHORRO',money:200000,savings:0,score:0,quality:'bad',fb:'SIN UN PLAN FIJO DE AHORRO ES IMPOSIBLE CONSTRUIR RIQUEZA. ESTABLECE UN MONTO FIJO HOY.'}
+       ],tip:'REGLA DEL 50-30-20: 50% NECESIDADES, 30% DESEOS, 20% AHORRO.'},
+      {emoji:'🏆',title:'META CUMPLIDA',
+       desc:'LLEVAS 1 ANO AHORRANDO $30.000/MES. ACUMULASTE $360.000. TU META ERA COMPRARTE UNA MOTO DE $350.000. QUE HACES?',
+       choices:[
+         {text:'COMPRO LA MOTO Y GUARDO $10K DE COLCHON',hint:'META LOGRADA + PEQUENO FONDO',money:0,savings:-340000,score:20,quality:'good',fb:'PERFECTO! LOGRASTE TU META Y ERES SABIO AL GUARDAR UN PEQUENO COLCHON. PLANIFICACION EJEMPLAR!'},
+         {text:'COMPRO LA MOTO Y SIGO AHORRANDO',hint:'NUEVA META INMEDIATA',money:0,savings:-350000,score:18,quality:'good',fb:'INCREIBLE! TIENES MENTALIDAD DE CAMPEONES. CADA META CUMPLIDA IMPULSA LA SIGUIENTE.'},
+         {text:'NO COMPRO — SIGO AHORRANDO MAS',hint:'ESPERO ACUMULAR MAS PRIMERO',money:0,savings:0,score:14,quality:'ok',fb:'CAUTELOSO PERO VALIDO. ASEGURATE DE QUE TUS METAS TENGAN FECHA PARA QUE NO SEAN ETERNAS.'},
+         {text:'COMPRO LA MOTO Y GASTO EL RESTO',hint:'META + CELEBRACION TOTAL',money:10000,savings:-360000,score:5,quality:'ok',fb:'CUMPLISTE LA META PERO GASTASTE EL SOBRANTE. SIEMPRE ES MEJOR GUARDAR UN COLCHON.'}
+       ],tip:'AHORRO CON META = EL HABITO MAS PODEROSO. ESTABLECE METAS CLARAS Y FECHAS!'},
+    ]
+  },
+
+  /* ══════════════════════════════════
+     MUNDO 2 — GASTOS
+  ══════════════════════════════════ */
+  {
+    id:2,name:'GASTOS',icon:'💸',
+    color:'lv2',
+    desc:'EL DINERO QUE SALE IMPORTA\nTANTO COMO EL QUE ENTRA.\nAPRENDE A CONTROLAR TUS GASTOS,\nEVITAR TRAMPAS Y PRESUPUESTAR.',
+    objectives:[
+      'DISTINGUIR NECESIDADES VS DESEOS',
+      'CREAR Y RESPETAR UN PRESUPUESTO',
+      'EVITAR DEUDAS Y GASTOS TRAMPA',
+    ],
+    scenes:[
+      {emoji:'🛍️',title:'NECESIDAD O DESEO?',
+       desc:'TIENES $80.000. EN EL CENTRO COMERCIAL VES: ZAPATOS ESCOLARES ($40K — NECESARIOS) Y AUDICULARES NUEVOS ($60K — QUIERES). QUE COMPRAS?',
+       choices:[
+         {text:'SOLO LOS ZAPATOS — SON NECESARIOS',hint:'NECESIDAD PRIMERO',money:-40000,savings:40000,score:20,quality:'good',fb:'EXCELENTE PRIORIDAD! LAS NECESIDADES SIEMPRE ANTES QUE LOS DESEOS. HABITO FINANCIERO GANADOR.'},
+         {text:'SOLO LOS AUDICULARES — LOS ZAPATOS AGUANTAN',hint:'DESEO PRIMERO',money:-60000,savings:0,score:2,quality:'bad',fb:'ERROR DE PRIORIDAD. LAS NECESIDADES (ZAPATOS ESCOLARES) DEBEN IR ANTES QUE LOS DESEOS.'},
+         {text:'NINGUNO — ESPERO A TENER MAS DINERO',hint:'GUARDO TODO',money:0,savings:80000,score:15,quality:'good',fb:'MUY DISCIPLINADO! PERO RECUERDA QUE LOS ZAPATOS ERAN NECESIDAD. PLANIFICA TU PROXIMO PAGO.'},
+         {text:'COMPRO LOS DOS Y PIDO PRESTADO EL RESTO',hint:'GASTO $100K + DEUDA DE $20K',money:-80000,savings:-20000,score:-5,quality:'bad',fb:'GASTAR MAS DE LO QUE TIENES PARA SATISFACER DESEOS ES UNA TRAMPA PELIGROSA.'}
+       ],tip:'NECESIDAD = INDISPENSABLE PARA VIVIR. DESEO = QUIERO TENER. PRIORIZA SIEMPRE LAS NECESIDADES.'},
+      {emoji:'📋',title:'EL PRESUPUESTO MENSUAL',
+       desc:'RECIBES $300.000/MES. TUS GASTOS FIJOS SON: COMIDA $120K, TRANSPORTE $40K, COLEGIO $60K. TE QUEDAN $80K. QUE HACES CON EL SOBRANTE?',
+       choices:[
+         {text:'$50K AL AHORRO — $30K PARA GUSTOS',hint:'AHORRO PRIMERO, LUEGO DISFRUTO',money:30000,savings:50000,score:20,quality:'good',fb:'PERFECTO PRESUPUESTO! CUBRES NECESIDADES, AHORRAS Y TE QUEDA ALGO PARA DISFRUTAR. BALANCE IDEAL.'},
+         {text:'TODO AL AHORRO — CERO GASTOS EXTRA',hint:'100% AHORRO DEL SOBRANTE',money:0,savings:80000,score:16,quality:'good',fb:'MUY DISCIPLINADO! AUNQUE ES SOSTENIBLE, PERMITE ALGUN GASTO DE DISFRUTE PARA NO DESMOTIVARTE.'},
+         {text:'TODO EN GASTOS EXTRA Y ENTRETENIMIENTO',hint:'0% AHORRO DEL SOBRANTE',money:80000,savings:0,score:0,quality:'bad',fb:'SIN AHORRAR DEL SOBRANTE NUNCA CONSTRUIRAS RIQUEZA. SIEMPRE PAGA EL AHORRO PRIMERO.'},
+         {text:'MITAD PARA AMIGOS — MITAD PARA MI',hint:'SALIDAS Y REGALOS',money:40000,savings:0,score:5,quality:'ok',fb:'SER GENEROSO ESTA BIEN PERO SIN AHORRAR PRIMERO NO TENDRAS SEGURIDAD FINANCIERA.'}
+       ],tip:'PRESUPUESTO: INGRESOS - NECESIDADES - AHORRO = LO QUE PUEDES GASTAR LIBREMENTE.'},
+      {emoji:'🎯',title:'LA TRAMPA DEL DESCUENTO',
+       desc:'UNOS TENIS COSTABAN $200K Y ESTAN EN OFERTA: $120K. SOLO TIENES $130K AHORRADOS. ES UNA BUENA COMPRA?',
+       choices:[
+         {text:'NO — NO ESTABAN EN MI PLAN DE GASTOS',hint:'DISCIPLINA SOBRE DESCUENTOS',money:0,savings:0,score:20,quality:'good',fb:'EXCELENTE! UN DESCUENTO SOLO ES AHORRO SI IBAS A COMPRARLO DE TODAS FORMAS. DE LO CONTRARIO ES UN GASTO.'},
+         {text:'SI — ME AHORRO $80K VS EL PRECIO ORIGINAL',hint:'EL DESCUENTO ES ENORME',money:-120000,savings:0,score:3,quality:'bad',fb:'ERROR COMUN. NO AHORRAS $80K — GASTAS $120K. LA PUBLICIDAD ENGANA. GASTAS MAS, NO MENOS.'},
+         {text:'LOS COMPRO SI LOS NECESITABA DE VERDAD',hint:'EVALUO LA NECESIDAD REAL',money:-120000,savings:0,score:14,quality:'ok',fb:'CORRECTO! SI ERAN NECESARIOS Y ESTABAN PLANEADOS, EL DESCUENTO SI ES CONVENIENTE. BUENA LOGICA.'},
+         {text:'ESPERO A TENER MAS DINERO PARA COMPRARLOS',hint:'NO GASTO CASI TODO MIS AHORROS',money:0,savings:0,score:18,quality:'good',fb:'MUY INTELIGENTE! GASTAR CASI TODOS TUS AHORROS POR IMPULSO TE DEJA SIN PROTECCION.'}
+       ],tip:'DESCUENTO NO ES AHORRO. ES UN GASTO. SOLO COMPRA LO QUE ESTABA EN TU PLAN.'},
+      {emoji:'📱',title:'EL CELULAR NUEVO',
+       desc:'TU CELULAR FUNCIONA BIEN. SALIO EL MODELO NUEVO A $800.000. TU AMIGO TE OFRECE UNA CUOTA MENSUAL DE $80.000 POR 12 MESES. LO COMPRAS?',
+       choices:[
+         {text:'NO — MI CELULAR ACTUAL FUNCIONA BIEN',hint:'NO CAMBIO LO QUE FUNCIONA',money:0,savings:0,score:20,quality:'good',fb:'EXCELENTE! CAMBIAR ALGO QUE FUNCIONA SOLO POR MODA ES UN GASTO INNECESARIO. SABIDURIA PURA.'},
+         {text:'SI — $80K AL MES ES MANEJABLE',hint:'CUOTA MENSUAL POR 12 MESES',money:-80000,savings:-880000,score:-5,quality:'bad',fb:'CUIDADO! PAGARIAS $960K POR UN CELULAR DE $800K. LAS CUOTAS SIEMPRE CUESTAN MAS AL FINAL.'},
+         {text:'ESPERO 6 MESES — EL PRECIO BAJARA',hint:'PACIENCIA ESTRATEGICA',money:0,savings:0,score:16,quality:'good',fb:'MUY INTELIGENTE! LOS PRECIOS DE TECNOLOGIA BAJAN CON EL TIEMPO. LA PACIENCIA VALE ORO.'},
+         {text:'LO COMPRO DE CONTADO CON MIS AHORROS',hint:'PAGO $800K DE UNA VEZ',money:-800000,savings:0,score:8,quality:'ok',fb:'MEJOR QUE CUOTAS. PERO CONSIDERA SI REALMENTE LO NECESITAS CUANDO EL ACTUAL FUNCIONA BIEN.'}
+       ],tip:'CUOTAS SIEMPRE CUESTAN MAS QUE EL PRECIO DE CONTADO. CALCULA EL COSTO TOTAL ANTES DE COMPRAR.'},
+      {emoji:'🍔',title:'LOS GASTOS HORMIGA',
+       desc:'GASTAS $3.000 DIARIOS EN ONCES, $5.000 EN TRANSPORTE EXTRA Y $2.000 EN DULCES. SON $10.000/DIA. EN UN MES = $300.000. LO REDUCES?',
+       choices:[
+         {text:'SI — LLEVO LONCHERA Y USO BUS',hint:'REDUZCO $200K AL MES',money:0,savings:200000,score:20,quality:'good',fb:'INCREIBLE! LOS GASTOS HORMIGA SON EL MAYOR ENEMIGO DEL AHORRO. ELIMINARLOS GENERA FORTUNA CON EL TIEMPO.'},
+         {text:'REDUZCO SOLO LOS DULCES',hint:'AHORRO $60K AL MES',money:0,savings:60000,score:10,quality:'ok',fb:'BIEN EMPEZADO! CADA PESO CUENTA. INTENTA REDUCIR TAMBIEN LOS OTROS GASTOS HORMIGA POCO A POCO.'},
+         {text:'NO — ME GUSTAN MIS HABITOS ACTUALES',hint:'SIGO IGUAL',money:300000,savings:0,score:0,quality:'bad',fb:'$300K AL MES EN GASTOS HORMIGA = $3.600.000 AL ANO! PEQUENOS GASTOS SUMAN MUCHO. PIENSALO.'},
+         {text:'LOS ANOTO TODOS PARA DECIDIR DESPUES',hint:'REGISTRO MIS GASTOS',money:0,savings:0,score:14,quality:'ok',fb:'EXCELENTE PRIMER PASO! REGISTRAR GASTOS ES FUNDAMENTAL PARA SABER DONDE VA TU DINERO.'}
+       ],tip:'GASTOS HORMIGA: PEQUENOS GASTOS DIARIOS QUE JUNTOS SON UNA FORTUNA. IDENTIFICALOS Y ELIMINALO.'},
+      {emoji:'💳',title:'LA TARJETA DE CREDITO',
+       desc:'TE OFRECEN TU PRIMERA TARJETA DE CREDITO CON CUPO DE $500.000. QUE HACES CON ELLA?',
+       choices:[
+         {text:'LA USO SOLO PARA EMERGENCIAS Y PAGO COMPLETO CADA MES',hint:'USO RESPONSABLE',money:0,savings:0,score:20,quality:'good',fb:'PERFECTO! ESA ES LA UNICA FORMA CORRECTA DE USAR UNA TARJETA. NUNCA PAGUES EL MINIMO.'},
+         {text:'LA USO PARA COMPRAR LO QUE QUIERO Y PAGO EL MINIMO',hint:'PAGO MINIMO MENSUAL',money:500000,savings:-600000,score:-10,quality:'bad',fb:'PELIGRO! PAGAR SOLO EL MINIMO PUEDE HACER QUE UNA DEUDA DE $500K SE CONVIERTA EN $1.500K CON INTERESES.'},
+         {text:'NO LA ACEPTO — NO ME GUSTAN LAS DEUDAS',hint:'RECHAZO LA TARJETA',money:0,savings:0,score:12,quality:'ok',fb:'PRECAUTION VALIDA! AUNQUE UNA TARJETA USADA CON RESPONSABILIDAD PUEDE SER UTIL. LA EDUCACION ES LA CLAVE.'},
+         {text:'LA PRESTO A UN AMIGO QUE LA NECESITA',hint:'PRESTO LA TARJETA',money:0,savings:-200000,score:-15,quality:'bad',fb:'NUNCA PRESTES TU TARJETA. ERES RESPONSABLE DE TODOS LOS CARGOS. ESTO PUEDE ARRUINAR TUS FINANZAS.'}
+       ],tip:'TARJETA DE CREDITO = HERRAMIENTA PODEROSA O TRAMPA MORTAL. DEPENDIENDO DE COMO LA USES.'},
+      {emoji:'🎮',title:'EL VIDEOJUEGO DESEADO',
+       desc:'QUIERES UN VIDEOJUEGO DE $150.000. TIENES $180.000 AHORRADOS. ES TODO LO QUE TIENES. LO COMPRAS?',
+       choices:[
+         {text:'NO — ESO ES CASI TODO MI AHORRO',hint:'PROTEJO MI FONDO',money:0,savings:0,score:20,quality:'good',fb:'MUY SABIO! GASTAR 83% DE TUS AHORROS EN ENTRETENIMIENTO TE DEJA SIN PROTECCION. GRAN DECISION.'},
+         {text:'AHORRO $50K MAS PRIMERO — LUEGO COMPRO',hint:'ESPERO Y AHORRO',money:0,savings:50000,score:18,quality:'good',fb:'EXCELENTE ESTRATEGIA! COMPRAR CUANDO TIENES MAS AHORROS REDUCE EL RIESGO. PACIENCIA PREMIADA.'},
+         {text:'LO COMPRO — ME LO MEREZCO',hint:'USO $150K DE MIS AHORROS',money:-150000,savings:0,score:3,quality:'bad',fb:'QUEDASTE CON SOLO $30K DE RESERVA. SI OCURRE ALGO URGENTE NO TENDRAS SUFICIENTE PROTECCION.'},
+         {text:'BUSCO UNO DE SEGUNDA MANO MAS BARATO',hint:'PAGO $70K EN LUGAR DE $150K',money:-70000,savings:0,score:14,quality:'ok',fb:'MUY INTELIGENTE! BUSCAR ALTERNATIVAS MAS BARATAS ES UNA HABILIDAD FINANCIERA MUY VALIOSA.'}
+       ],tip:'ANTES DE COMPRAR: CUANTO % DE MIS AHORROS ES ESTO? SI ES MAS DEL 30% — PIENSALO DOS VECES.'},
+      {emoji:'🏠',title:'EL GASTO GRANDE',
+       desc:'TU FAMILIA NECESITA PINTAR LA CASA ($800K). TIENEN $1.200.000 AHORRADOS. EL PINTOR OFRECE FINANCIACION AL 25% DE INTERES. QUE DECIDEN?',
+       choices:[
+         {text:'PAGAR DE CONTADO CON LOS AHORROS',hint:'PAGAN $800K — GUARDAN $400K',money:0,savings:-800000,score:20,quality:'good',fb:'DECISION PERFECTA! PAGAR DE CONTADO EVITA INTERESES. AHORRARON LO SUFICIENTE PARA ESTA NECESIDAD.'},
+         {text:'TOMAR LA FINANCIACION Y GUARDAR LOS AHORROS',hint:'PAGAN $1M CON INTERESES + CONSERVAN AHORRO',money:0,savings:0,score:5,quality:'bad',fb:'25% DE INTERES ES ALTO. $800K SE CONVERTIRAN EN MAS DE $1.000K. PAGAR DE CONTADO ERA MEJOR.'},
+         {text:'NEGOCIAR DESCUENTO POR PAGO DE CONTADO',hint:'BUSCAR PRECIO MENOR',money:0,savings:-700000,score:20,quality:'good',fb:'BRILLANTE! PAGAR DE CONTADO DA PODER DE NEGOCIACION. SIEMPRE PIDE DESCUENTO EN PAGOS INMEDIATOS.'},
+         {text:'ESPERAR Y NO PINTAR POR AHORA',hint:'POSTERGAR EL GASTO',money:0,savings:0,score:8,quality:'ok',fb:'VALIDO SI NO ES URGENTE. PERO POSPONER SIEMPRE TIENE UN COSTO. PLANIFICA CUANDO LO HARAN.'}
+       ],tip:'PAGAR DE CONTADO = PODER DE NEGOCIACION + SIN INTERESES. AHORRA PARA TUS GASTOS GRANDES.'},
+    ]
+  },
+
+  /* ══════════════════════════════════
+     MUNDO 3 — NEGOCIO
+  ══════════════════════════════════ */
+  {
+    id:3,name:'NEGOCIO',icon:'🏪',
+    color:'lv3',
+    desc:'EMPRENDER ES CREAR VALOR\nY GENERAR TUS PROPIOS INGRESOS.\nAPRENDE A PENSAR COMO UN\nEMPRENDEDOR DESDE HOY.',
+    objectives:[
+      'ENTENDER QUE ES UN NEGOCIO Y COMO FUNCIONA',
+      'APRENDER A GENERAR INGRESOS PROPIOS',
+      'TOMAR DECISIONES DE EMPRENDEDOR',
+    ],
+    scenes:[
+      {emoji:'🍋',title:'LA LIMONADA',
+       desc:'TIENES $20.000. PUEDES VENDER LIMONADAS A $3.000 CADA UNA. UN VASO CUESTA $1.500 DE INSUMOS. CUANTAS VENDES PARA GANAR $30K?',
+       choices:[
+         {text:'VENDO 20 LIMONADAS — GANO $30.000',hint:'20 x $1.500 GANANCIA = $30K',money:30000,savings:0,score:20,quality:'good',fb:'EXACTO! GANANCIA = PRECIO VENTA - COSTO. $3.000 - $1.500 = $1.500 POR VASO. 20 VASOS = $30K. CALCULO PERFECTO!'},
+         {text:'VENDO 10 LIMONADAS — YA GANARE SUFICIENTE',hint:'10 x $1.500 = SOLO $15K',money:15000,savings:0,score:8,quality:'ok',fb:'CALCULAS BIEN PERO VENDISTE LA MITAD. NECESITABAS 20 PARA TU META DE $30K. REVISA TUS CALCULOS.'},
+         {text:'VENDO 30 — QUIERO GANAR MAS',hint:'30 x $1.500 = $45K DE GANANCIA',money:45000,savings:0,score:20,quality:'good',fb:'AMBICION + CALCULO CORRECTO = EXITO! SUPERAR LA META ES EXCELENTE CUANDO SE HACE CON PLAN.'},
+         {text:'NO SE — COMIENZO SIN CALCULAR',hint:'EMPIEZO SIN SABER EL COSTO',money:5000,savings:0,score:2,quality:'bad',fb:'UN NEGOCIO SIN CALCULOS ES UN HOBBY CON PERDIDAS. SIEMPRE CALCULA COSTOS Y GANANCIAS ANTES.'}
+       ],tip:'GANANCIA = PRECIO DE VENTA - COSTO. SIEMPRE CALCULA ANTES DE EMPRENDER.'},
+      {emoji:'📦',title:'EL PRIMER PEDIDO',
+       desc:'TU NEGOCIO DE MANUALIDADES RECIBIO UN PEDIDO DE 50 PULSERAS A $5.000 C/U. LOS MATERIALES CUESTAN $100.000. TIENES QUE ENTREGAR EN 3 DIAS. ACEPTAS?',
+       choices:[
+         {text:'SI — PUEDO HACERLO Y ES RENTABLE',hint:'$250K VENTAS - $100K COSTOS = $150K GANANCIA',money:150000,savings:0,score:20,quality:'good',fb:'EXCELENTE DECISION! $150K DE GANANCIA NETA Y CUMPLISTE CON EL PLAZO. ASI FUNCIONA UN BUEN NEGOCIO.'},
+         {text:'ACEPTO PERO PIDO MAS TIEMPO',hint:'NEGOCIO EL PLAZO',money:150000,savings:0,score:16,quality:'good',fb:'BIEN! NEGOCIAR PLAZOS REALISTAS ES MEJOR QUE INCUMPLIR. UN CLIENTE SATISFECHO VUELVE SIEMPRE.'},
+         {text:'NO ACEPTO — ES MUCHO TRABAJO',hint:'RECHAZO EL PEDIDO',money:0,savings:0,score:5,quality:'ok',fb:'LAS OPORTUNIDADES HAY QUE APROVECHARLAS. ESTE PEDIDO ERA RENTABLE Y MANEJABLE. NO TENGAS MIEDO.'},
+         {text:'ACEPTO Y SUBO EL PRECIO A $8.000',hint:'MAS RENTABLE PERO MENOS JUSTO',money:0,savings:0,score:8,quality:'ok',fb:'RENEGOCIAR EL PRECIO PUEDE SER VALIDO. PERO HACERLO DESPUES DE ACORDAR ES MAL NEGOCIO.'}
+       ],tip:'ANTES DE ACEPTAR UN PEDIDO: CALCULA COSTOS, TIEMPO Y GANANCIA. SI ES RENTABLE, ACEPTA!'},
+      {emoji:'📣',title:'EL MARKETING PIXELADO',
+       desc:'TIENES UN NEGOCIO DE TORTAS. QUIERES MAS CLIENTES. TIENES $50.000 PARA PROMOCION. QUE ESTRATEGIA USAS?',
+       choices:[
+         {text:'REDES SOCIALES + FOTOS PROFESIONALES',hint:'$30K FOTOS + $20K EN ANUNCIOS',money:0,savings:80000,score:20,quality:'good',fb:'PERFECTO! LAS REDES SOCIALES SON EL CANAL MAS EFECTIVO PARA NEGOCIOS DE COMIDA. INVERSION INTELIGENTE.'},
+         {text:'VOLANTES EN EL BARRIO',hint:'$50K EN IMPRESION Y DISTRIBUCION',money:0,savings:30000,score:12,quality:'ok',fb:'FUNCIONA PARA NEGOCIOS LOCALES PERO ES MENOS EFECTIVO QUE DIGITAL. COMBINA AMBOS SI PUEDES.'},
+         {text:'NO GASTO — EL VEOZ A VOZ ES SUFICIENTE',hint:'CERO INVERSION EN MARKETING',money:0,savings:0,score:5,quality:'ok',fb:'EL VOZ A VOZ FUNCIONA PERO ES LENTO. UN POCO DE INVERSION EN MARKETING ACELERA EL CRECIMIENTO.'},
+         {text:'REGALO TORTAS GRATIS PARA QUE PRUEBEN',hint:'REGALO PRODUCTOS PARA GANAR CLIENTES',money:-50000,savings:20000,score:14,quality:'ok',fb:'ESTRATEGIA VALIDA! LAS MUESTRAS GRATIS CONSIGUEN CLIENTES PERO CALCULA QUE NO PIERDAS DINERO.'}
+       ],tip:'MARKETING = HACER QUE LA GENTE SEPA QUE EXISTES. SIN CLIENTES NO HAY NEGOCIO.'},
+      {emoji:'👥',title:'EL PRIMER EMPLEADO',
+       desc:'TU NEGOCIO CRECE. NO DAS ABASTO SOLO. CONTRATAR UN AYUDANTE CUESTA $200.000/MES. TU GANANCIA ACTUAL ES $350.000/MES. LO CONTRATAS?',
+       choices:[
+         {text:'SI — GANARE MENOS PERO CRECERE MAS',hint:'$350K - $200K = $150K NETO + CAPACIDAD',money:150000,savings:0,score:20,quality:'good',fb:'DECISION EMPRESARIAL MADURA! INVERTIR EN PERSONAS PARA CRECER ES LA BASE DE TODO NEGOCIO EXITOSO.'},
+         {text:'NO — PREFIERO GANAR TODO YO SOLO',hint:'TRABAJO MAS PERO GANO MAS',money:350000,savings:0,score:8,quality:'ok',fb:'VALIDO A CORTO PLAZO PERO LIMITA EL CRECIMIENTO. SOLOS LLEGAMOS LEJOS — JUNTOS LLEGAMOS MAS LEJOS.'},
+         {text:'BUSCO UN SOCIO EN LUGAR DE EMPLEADO',hint:'DIVIDO GANANCIAS Y TRABAJO',money:175000,savings:0,score:16,quality:'good',fb:'BUENA ALTERNATIVA! UN SOCIO COMPARTE RIESGOS Y RESPONSABILIDADES. ELIGE BIEN A TU SOCIO.'},
+         {text:'SUBO LOS PRECIOS PARA TENER MAS MARGEN',hint:'MAS GANANCIA SIN CONTRATAR',money:500000,savings:0,score:14,quality:'ok',fb:'CREATIVIDAD! SUBIR PRECIOS PUEDE FUNCIONAR SI EL MERCADO LO ACEPTA. ANALIZA A TUS COMPETIDORES.'}
+       ],tip:'CONTRATAR ES UNA INVERSION, NO UN GASTO. LAS PERSONAS CORRECTAS MULTIPLICAN TU NEGOCIO.'},
+      {emoji:'💡',title:'LA IDEA DE NEGOCIO',
+       desc:'SE TE OCURREN DOS IDEAS DE NEGOCIO: A) VENDER DULCES EN EL COLEGIO ($10K INVERSION) B) HACER PAGINAS WEB ($0 INVERSION, NECESITAS APRENDER). CUAL ELIGES?',
+       choices:[
+         {text:'DULCES — EMPIEZA YA, RESULTADO RAPIDO',hint:'NEGOCIO TANGIBLE E INMEDIATO',money:20000,savings:0,score:14,quality:'ok',fb:'BUENA OPCION RAPIDA! PERO TIENE LIMITES DE ESCALA. LOS DULCES SON UN BUEN PRIMER NEGOCIO.'},
+         {text:'PAGINAS WEB — INVERSION EN CONOCIMIENTO',hint:'LARGO PLAZO — ALTO POTENCIAL',money:0,savings:0,score:20,quality:'good',fb:'VISION A LARGO PLAZO! EL CONOCIMIENTO DIGITAL NO TIENE LIMITES. UNA PAGINA PUEDE COSTAR $500K O MAS.'},
+         {text:'AMBAS — EMPIEZO CON DULCES Y APRENDO WEB',hint:'DOBLE ESTRATEGIA',money:15000,savings:0,score:18,quality:'good',fb:'EXCELENTE! GENERAR INGRESOS HOY MIENTRAS APRENDES PARA MANANA ES LA ESTRATEGIA MAS INTELIGENTE.'},
+         {text:'NINGUNA — ES MUY ARRIESGADO',hint:'NO EMPRENDO POR MIEDO',money:0,savings:0,score:0,quality:'bad',fb:'EL MAYOR RIESGO ES NO INTENTARLO. TODO NEGOCIO TIENE RIESGO PERO TAMBIEN OPORTUNIDAD. ATREVE!'}
+       ],tip:'MEJOR NEGOCIO: EL QUE RESUELVE UN PROBLEMA + LO QUE SABES HACER BIEN + LO QUE TE APASIONA.'},
+      {emoji:'📉',title:'EL MES MALO',
+       desc:'TU NEGOCIO TUVO UN MES MALO — VENDISTE $100K MENOS DE LO NORMAL. TIENES $200K DE RESERVA. QUE HACES?',
+       choices:[
+         {text:'USO RESERVAS Y ANALIZO QUE PASO',hint:'INVESTIGO LA CAUSA',money:0,savings:-50000,score:20,quality:'good',fb:'EMPRESARIO INTELIGENTE! LAS RESERVAS EXISTEN PARA ESTO. ANALIZAR LA CAUSA ES CLAVE PARA NO REPETIRLO.'},
+         {text:'BAJO PRECIOS PARA ATRAER MAS CLIENTES',hint:'ESTRATEGIA DE PRECIO',money:50000,savings:0,score:14,quality:'ok',fb:'PUEDE FUNCIONAR TEMPORALMENTE. PERO BAJAR PRECIOS REDUCE TU MARGEN. USALO CON CUIDADO.'},
+         {text:'CIERRO EL NEGOCIO — NO ES RENTABLE',hint:'ABANDONO AL PRIMER PROBLEMA',money:0,savings:0,score:-5,quality:'bad',fb:'UN MES MALO NO DEFINE UN NEGOCIO. TODO EMPRENDIMIENTO TIENE ALTIBAJOS. ANALIZA Y AJUSTA, NO ABANDONES.'},
+         {text:'HAGO PROMOCIONES ESPECIALES PARA RECUPERAR',hint:'ESTRATEGIA DE MARKETING',money:80000,savings:0,score:18,quality:'good',fb:'EXCELENTE REACCION! LAS PROMOCIONES EN MOMENTOS BAJOS REACTIVAN LAS VENTAS. BUEN INSTINTO EMPRESARIAL.'}
+       ],tip:'TODO NEGOCIO TIENE MESES MALOS. LAS RESERVAS Y EL ANALISIS SON TU MEJOR HERRAMIENTA.'},
+      {emoji:'🤝',title:'LA ALIANZA ESTRATEGICA',
+       desc:'OTRO ESTUDIANTE VENDE BEBIDAS Y TU VENDES COMIDA. PROPONE UNIRSE PARA OFRECER COMBOS. ACEPTAS?',
+       choices:[
+         {text:'SI — COMBOS = MAS VENTAS PARA LOS DOS',hint:'ALIANZA GANAR-GANAR',money:80000,savings:0,score:20,quality:'good',fb:'VISION EMPRESARIAL! LAS ALIANZAS ESTRATEGICAS MULTIPLICAN EL VALOR PARA TODOS. GANAR-GANAR ES EL CAMINO.'},
+         {text:'NO — NO QUIERO COMPARTIR MIS CLIENTES',hint:'COMPETENCIA EN LUGAR DE COOPERACION',money:30000,savings:0,score:5,quality:'bad',fb:'ERROR DE PERSPECTIVA. LOS CLIENTES NO SON EXCLUSIVOS. JUNTOS ATRAEN MAS CLIENTES QUE SOLOS.'},
+         {text:'SI PERO NEGOCIO MIS TERMINOS PRIMERO',hint:'ACUERDO CLARO DESDE EL INICIO',money:80000,savings:0,score:18,quality:'good',fb:'MUY PROFESIONAL! TODA ALIANZA NECESITA TERMINOS CLAROS. ESTO EVITA CONFLICTOS FUTUROS.'},
+         {text:'PRIMERO LO ANALIZO UNA SEMANA',hint:'TOMO TIEMPO PARA DECIDIR',money:0,savings:0,score:12,quality:'ok',fb:'ANALIZAR ESTA BIEN. PERO ALGUNAS OPORTUNIDADES NO ESPERAN. DESARROLLA AGILIDAD EN TUS DECISIONES.'}
+       ],tip:'ALIANZA ESTRATEGICA = SUMAR FORTALEZAS. 1+1 EN NEGOCIOS PUEDE IGUAL 3 O MAS.'},
+      {emoji:'🚀',title:'ESCALAR EL NEGOCIO',
+       desc:'TU NEGOCIO GANA $500K/MES. PUEDES REINVERTIR $300K PARA CRECER O GUARDARTE TODO. QUE HACES?',
+       choices:[
+         {text:'REINVIERTO $300K PARA CRECER MAS',hint:'SACRIFICO HOY PARA GANAR MAS MANANA',money:200000,savings:0,score:20,quality:'good',fb:'MENTALIDAD EMPRESARIAL! REINVERTIR ES LO QUE HACE CRECER UN NEGOCIO. LOS GRANDES SIEMPRE REINVIERTEN.'},
+         {text:'GUARDO TODO — YA ESTOY BIEN ASI',hint:'CERO REINVERSION',money:500000,savings:0,score:6,quality:'ok',fb:'CONFORMISMO ES EL ENEMIGO DEL CRECIMIENTO. SI TUS COMPETIDORES REINVIERTEN Y TU NO, TE QUEDAS ATRAS.'},
+         {text:'REINVIERTO $150K Y GUARDO $350K',hint:'CRECIMIENTO MODERADO',money:350000,savings:0,score:16,quality:'good',fb:'BALANCE INTELIGENTE! CRECER CON PRUDENCIA ES SABIO. ASEGURAS FUTURO SIN DESCUIDAR EL PRESENTE.'},
+         {text:'ABRO UN SEGUNDO NEGOCIO DIFERENTE',hint:'DIVERSIFICO MIS NEGOCIOS',money:200000,savings:0,score:14,quality:'ok',fb:'DIVERSIFICAR PUEDE SER BUENO PERO ES MEJOR DOMINAR UN NEGOCIO ANTES DE ABRIR OTRO.'}
+       ],tip:'REINVERSION = GASOLINA DEL CRECIMIENTO. LOS MEJORES NEGOCIOS SIEMPRE REINVIERTEN UNA PARTE.'},
+    ]
+  },
+
+  /* ══════════════════════════════════
+     MUNDO 4 — INVERSION
+  ══════════════════════════════════ */
+  {
+    id:4,name:'INVERSION',icon:'📈',
+    color:'lv4',
+    desc:'HACER QUE TU DINERO TRABAJE\nPOR TI ES EL SECRETO DE LA\nRIQUEZA. APRENDE LOS\nFUNDAMENTOS DE LA INVERSION.',
+    objectives:[
+      'ENTENDER QUE ES UNA INVERSION Y POR QUE INVERTIR',
+      'CONOCER INSTRUMENTOS BASICOS DE INVERSION',
+      'APRENDER A GESTIONAR RIESGO Y DIVERSIFICAR',
+    ],
+    scenes:[
+      {emoji:'🌱',title:'QUE ES INVERTIR?',
+       desc:'TU ABUELA TE DA $50.000 Y TE DICE: SI LOS INVIERTES EN UN MES TE DARE 10% MAS = $5.000 EXTRA. QUE HACES?',
+       choices:[
+         {text:'INVIERTO LOS $50.000 COMPLETOS',hint:'GANO $5.000 EXTRA = $55.000 TOTAL',money:55000,savings:0,score:20,quality:'good',fb:'EXCELENTE! INVERTIR HACE QUE EL DINERO TRABAJE POR TI. ESE 10% SE LLAMA RENDIMIENTO O INTERES.'},
+         {text:'INVIERTO $25K Y GUARDO $25K',hint:'MITAD INVERSION — MITAD SEGURO',money:27500,savings:25000,score:15,quality:'good',fb:'BIEN! DIVERSIFICAR ENTRE INVERSION Y LIQUIDEZ ES UNA ESTRATEGIA INTELIGENTE PARA PRINCIPIANTES.'},
+         {text:'LO GASTO TODO AHORA',hint:'NO INVIERTO — GASTO YA',money:50000,savings:0,score:0,quality:'bad',fb:'PERDISTE $5.000 GRATIS. INVERTIR ES DEJAR QUE EL TIEMPO Y EL INTERES MULTIPLIQUEN TU DINERO.'},
+         {text:'NO INVIERTO — ES DEMASIADO ARRIESGADO',hint:'GUARDO EN CASA',money:0,savings:50000,score:6,quality:'ok',fb:'PRECAUCION VALIDA PERO EXCESIVA AQUI. CON FUENTES CONFIABLES Y MONTOS PEQUENOS, INVERTIR ES SEGURO.'}
+       ],tip:'INVERTIR = PONER TU DINERO A TRABAJAR PARA QUE GANE MAS DINERO SIN QUE HAGAS NADA.'},
+      {emoji:'🏛️',title:'EL CDT DEL BANCO',
+       desc:'EL BANCO OFRECE UN CDT: DEPOSITAS $200.000 POR 6 MESES Y TE DEVUELVEN $212.000 (6% DE RENDIMIENTO). LO TOMAS?',
+       choices:[
+         {text:'SI — DEPOSITO LOS $200K COMPLETOS',hint:'$12.000 DE GANANCIA SEGURA',money:212000,savings:0,score:20,quality:'good',fb:'PERFECTO! UN CDT ES 100% SEGURO Y GARANTIZADO. $12K GRATIS EN 6 MESES ES EXCELENTE PARA EMPEZAR.'},
+         {text:'DEPOSITO $100K — GUARDO $100K DISPONIBLE',hint:'MITAD EN CDT — MITAD LIQUIDO',money:106000,savings:100000,score:18,quality:'good',fb:'MUY INTELIGENTE! INVERTIR UNA PARTE Y TENER LIQUIDEZ ES LA ESTRATEGIA FAVORITA DE LOS EXPERTOS.'},
+         {text:'NO — 6 MESES SIN TOCAR EL DINERO ES MUCHO',hint:'QUIERO LIQUIDEZ TOTAL',money:200000,savings:0,score:5,quality:'bad',fb:'LA PACIENCIA EN INVERSIONES ES ORO. 6 MESES PARA GANAR $12K SIN HACER NADA ES UNA GRAN OFERTA.'},
+         {text:'PREGUNTO MAS DETALLES ANTES DE DECIDIR',hint:'INVESTIGO PRIMERO',money:0,savings:200000,score:15,quality:'ok',fb:'EXCELENTE HABITO! SIEMPRE PREGUNTA ANTES DE INVERTIR. ENTENDER EL PRODUCTO ES FUNDAMENTAL.'}
+       ],tip:'CDT = CERTIFICADO DE DEPOSITO A TERMINO. SEGURO, GARANTIZADO Y SIN RIESGO. IDEAL PARA COMENZAR.'},
+      {emoji:'📊',title:'LA BOLSA DE VALORES',
+       desc:'UN AMIGO TE INVITA A COMPRAR ACCIONES DE UNA EMPRESA TECH POR $500.000. PUEDEN SUBIR 50% O BAJAR 30%. QUE HACES?',
+       choices:[
+         {text:'INVESTIGO LA EMPRESA PRIMERO',hint:'ANALIZO ANTES DE INVERTIR',money:0,savings:500000,score:20,quality:'good',fb:'REGLA DE ORO DE LA INVERSION! NUNCA PONGAS DINERO EN ALGO QUE NO ENTIENDES. INVESTIGA SIEMPRE.'},
+         {text:'INVIERTO TODO — QUIERO EL 50% DE GANANCIA',hint:'APUESTO TODO',money:750000,savings:0,score:5,quality:'ok',fb:'AMBICIOSO PERO PELIGROSO. SIN INVESTIGACION ES ESPECULACION. PODRIAS PERDER $150K TAMBIEN.'},
+         {text:'INVIERTO SOLO LO QUE PUEDO PERDER',hint:'INVIERTO $100K DE DINERO EXTRA',money:0,savings:0,score:18,quality:'good',fb:'EXCELENTE PRINCIPIO! NUNCA INVIERTAS LO QUE NO PUEDES PERMITIRTE PERDER. REGLA DE INVERSION BASICA.'},
+         {text:'NO — LA BOLSA ES UN CASINO',hint:'RECHAZO LA OPORTUNIDAD',money:0,savings:500000,score:8,quality:'ok',fb:'PRECAUCION VALIDA PERO EXCESIVA. LA BOLSA CON EDUCACION ES UNA HERRAMIENTA DE RIQUEZA, NO UN CASINO.'}
+       ],tip:'REGLA DE ORO: NUNCA INVIERTAS LO QUE NO PUEDES PERDER. INVESTIGA ANTES DE INVERTIR SIEMPRE.'},
+      {emoji:'🥚',title:'NO PONER TODOS LOS HUEVOS',
+       desc:'TIENES $1.000.000 PARA INVERTIR. PUEDES PONERLO TODO EN ACCIONES DE UNA SOLA EMPRESA O DIVERSIFICAR. QUE HACES?',
+       choices:[
+         {text:'DIVERSIFICO: 40% ACCIONES, 40% CDT, 20% EFECTIVO',hint:'PORTAFOLIO BALANCEADO',money:0,savings:1000000,score:20,quality:'good',fb:'EXCELENTE DIVERSIFICACION! ESTO REDUCE EL RIESGO SIN SACRIFICAR MUCHO RENDIMIENTO. COMO LOS EXPERTOS.'},
+         {text:'TODO EN ACCIONES DE UNA SOLA EMPRESA',hint:'MAXIMO RIESGO — MAXIMO RETORNO',money:0,savings:1500000,score:5,quality:'bad',fb:'PELIGROSO! SI ESA EMPRESA CAE, PIERDES TODO. LA DIVERSIFICACION PROTEGE TU CAPITAL.'},
+         {text:'TODO EN CDT — ES LO MAS SEGURO',hint:'MAXIMA SEGURIDAD — MINIMO RETORNO',money:0,savings:1060000,score:12,quality:'ok',fb:'SEGURO PERO CONSERVADOR. EL CDT PARA TODO SIGNIFICA RENDIMIENTOS BAJOS. UN POCO DE ACCION AGREGA VALOR.'},
+         {text:'MITAD EN NEGOCIOS LOCALES — MITAD EN CDT',hint:'INVERSION MIXTA LOCAL',money:0,savings:1080000,score:16,quality:'good',fb:'BUENA MEZCLA! APOYAR NEGOCIOS LOCALES Y TENER SEGURIDAD EN CDT ES UNA COMBINACION SOLIDA.'}
+       ],tip:'DIVERSIFICACION = NO PONER TODOS LOS HUEVOS EN UNA SOLA CANASTA. DISTRIBUYE EL RIESGO SIEMPRE.'},
+      {emoji:'⏰',title:'EL INTERES COMPUESTO',
+       desc:'INVIERTES $100.000 AL 10% ANUAL. AL PRIMER ANO TIENES $110.000. SI REINVIERTES TODO: AL ANO 2 TIENES $121.000. SIGUES REINVIRTIENDO?',
+       choices:[
+         {text:'SI — REINVIERTO TODO CADA ANO',hint:'INTERES SOBRE INTERES',money:0,savings:200000,score:20,quality:'good',fb:'DESCUBRISTE EL PODER DEL INTERES COMPUESTO! EN 10 ANOS TUS $100K SERAN $259K SIN HACER NADA EXTRA.'},
+         {text:'RETIRO LOS INTERESES CADA ANO',hint:'$10K AL ANO EN MI BOLSILLO',money:100000,savings:100000,score:10,quality:'ok',fb:'PIERDES EL PODER COMPUESTO. ES MEJOR REINVERTIR Y DEJAR CRECER. EL TIEMPO ES TU MAYOR ALIADO.'},
+         {text:'REINVIERTO LA MITAD Y GASTO LA MITAD',hint:'BALANCE ENTRE HOY Y MANANA',money:50000,savings:150000,score:14,quality:'ok',fb:'BALANCE RAZONABLE. AUNQUE PARA MAXIMIZAR RIQUEZA A LARGO PLAZO, REINVERTIR TODO ES LO OPTIMO.'},
+         {text:'RETIRO TODO AL ANO 1 — QUIERO EL DINERO',hint:'RETIRO GANANCIAS + CAPITAL',money:110000,savings:0,score:3,quality:'bad',fb:'CORTAS EL CRECIMIENTO. EL INTERES COMPUESTO NECESITA TIEMPO. RETIRARLO AL PRIMER ANO PIERDE EL PODER.'}
+       ],tip:'INTERES COMPUESTO = GANAR INTERES SOBRE EL INTERES. EINSTEIN LO LLAMO LA MARAVILLA DEL UNIVERSO.'},
+      {emoji:'🏘️',title:'INVERTIR EN FINCA RAIZ',
+       desc:'TIENES $5.000.000 AHORRADOS. PUEDES COMPRAR UN LOCAL PEQUENO Y ARRENDARLO POR $300.000/MES. LO COMPRAS?',
+       choices:[
+         {text:'SI — $300K/MES = $3.6M AL ANO DE INGRESO PASIVO',hint:'INGRESO PASIVO DESDE EL DIA 1',money:300000,savings:0,score:20,quality:'good',fb:'EXCELENTE VISION! FINCA RAIZ ES UNA DE LAS INVERSIONES MAS SOLIDAS. GENERAS INGRESO PASIVO CONSTANTE.'},
+         {text:'INVESTIGO MAS ANTES DE COMPRAR',hint:'ANALIZO BIEN LA ZONA Y EL CONTRATO',money:0,savings:5000000,score:18,quality:'good',fb:'CORRECTO! SIEMPRE INVESTIGA UBICACION, CONTRATO Y ESTADO DEL INMUEBLE ANTES DE COMPRAR. BUEN HABITO.'},
+         {text:'PREFIERO CDT — ES MAS FACIL',hint:'$5M EN CDT AL 6% = $300K/ANO',money:0,savings:5300000,score:12,quality:'ok',fb:'CDT ES SEGURO PERO DA MENOS. $300K/ANO VS $3.6M/ANO EN ARRIENDO. LA FINCA RAIZ RENTABA MAS.'},
+         {text:'LO DIVIDO ENTRE CDT Y NEGOCIO PROPIO',hint:'DIVERSIFICACION ACTIVA',money:500000,savings:4750000,score:16,quality:'good',fb:'BUENA DIVERSIFICACION! MEZCLAR AHORRO SEGURO CON EMPRENDIMIENTO ES UNA ESTRATEGIA SOLIDA.'}
+       ],tip:'INGRESO PASIVO = DINERO QUE LLEGA SIN QUE TRABAJES. FINCA RAIZ ES UNA DE LAS MEJORES FORMAS.'},
+      {emoji:'⚠️',title:'LA INVERSION TRAMPA',
+       desc:'UN DESCONOCIDO TE OFRECE DUPLICAR TU DINERO EN 30 DIAS CON "CRIPTO SECRETA". INVIERTES TUS $500.000 AHORRADOS?',
+       choices:[
+         {text:'NO — SI SUENA DEMASIADO BUENO ES UNA ESTAFA',hint:'HUYO DEL FRAUDE',money:0,savings:500000,score:20,quality:'good',fb:'EXCELENTE INSTINTO! DUPLICAR EN 30 DIAS ES IMPOSIBLE LEGALMENTE. ESTO ES UNA ESTAFA CLASICA. NUNCA CAIGAS.'},
+         {text:'INVIERTO UN POCO PARA PROBAR',hint:'ARRIESGO $50K A VER QUE PASA',money:0,savings:-50000,score:0,quality:'bad',fb:'CAISTE EN LA TRAMPA. LAS ESTAFAS USAN ESTA TACTICA: TE DAN GANANCIA LA PRIMERA VEZ Y LUEGO TE ROBAN TODO.'},
+         {text:'LE PIDO QUE ME EXPLIQUE COMO FUNCIONA',hint:'INVESTIGO ANTES',money:0,savings:500000,score:16,quality:'good',fb:'BUEN INSTINTO! PEDIR EXPLICACIONES CLARAS DESMONTA LAS ESTAFAS. SI NO PUEDEN EXPLICAR — ES FRAUDE.'},
+         {text:'INVIERTO TODO — QUIERO SER RICO RAPIDO',hint:'APUESTO TODOS MIS AHORROS',money:0,savings:-500000,score:-20,quality:'bad',fb:'PERDISTE TODO. ESTO ES UNA ESTAFA PIRAMIDAL. NUNCA CONFIES EN PROMESAS DE RIQUEZA RAPIDA Y FACIL.'}
+       ],tip:'REGLA DE ORO: SI PROMETE GANANCIAS IRREALES EN POCO TIEMPO — ES UNA ESTAFA. CORRE!'},
+      {emoji:'🎓',title:'EL PORTAFOLIO FINAL',
+       desc:'TIENES $2.000.000 PARA CONSTRUIR TU PRIMER PORTAFOLIO DE INVERSION. COMO LO DISTRIBUYES?',
+       choices:[
+         {text:'40% CDT + 30% ACCIONES + 20% NEGOCIO + 10% EFECTIVO',hint:'PORTAFOLIO DIVERSIFICADO',money:0,savings:2200000,score:20,quality:'good',fb:'PORTAFOLIO PERFECTO! MEZCLAS SEGURIDAD (CDT), CRECIMIENTO (ACCIONES), ACTIVO (NEGOCIO) Y LIQUIDEZ. EXPERTO!'},
+         {text:'100% EN ACCIONES DE GRANDES EMPRESAS',hint:'MAXIMO RIESGO Y RENDIMIENTO',money:0,savings:2600000,score:10,quality:'ok',fb:'AGRESIVO PERO FUNCIONA A LARGO PLAZO. PARA UN PRINCIPIANTE ES MEJOR DIVERSIFICAR UN POCO MAS.'},
+         {text:'70% CDT + 30% EN MI PROPIO NEGOCIO',hint:'SEGURIDAD + EMPRENDIMIENTO',money:0,savings:2140000,score:16,quality:'good',fb:'SOLIDO! COMBINAR AHORRO SEGURO CON NEGOCIO PROPIO ES UNA ESTRATEGIA GANADORA Y BALANCEADA.'},
+         {text:'TODO EN CRIPTOMONEDAS',hint:'ALTO RIESGO — POSIBLE PERDIDA TOTAL',money:0,savings:1000000,score:2,quality:'bad',fb:'MUY ARRIESGADO! CRIPTOMONEDAS SIN EDUCACION PUEDEN HACERTE PERDER TODO. NUNCA APUESTES TODO EN UNA COSA.'}
+       ],tip:'PORTAFOLIO IDEAL: MEZCLA SEGURIDAD, CRECIMIENTO Y LIQUIDEZ SEGUN TU PERFIL DE RIESGO Y EDAD.'},
+    ]
+  }
+];
+
+/* ════════════ STATE ════════════ */
+let state={
+  completedLevels:[],  // array of level indices completed
+  totalScore:0,
+  totalMoney:50000,
+  totalSavings:0,
+  // current level session
+  currentLevel:null,
+  scene:0,
+  money:50000,
+  savings:0,
+  score:0,
+  answered:false
+};
+
+/* ════════════ ROUTING ════════════ */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function goToSelect(){
+  sfxClick();
+  buildLevelGrid();
+  showScreen('select-screen');
+  applyLevelTheme(0);
+  document.getElementById('total-score-val').textContent=String(state.totalScore).padStart(3,'0');
+}
+
+function fullReset(){
+  sfxClick();
+  state={completedLevels:[],totalScore:0,totalMoney:50000,totalSavings:0,
+    currentLevel:null,scene:0,money:50000,savings:0,score:0,answered:false};
+  showScreen('start-screen');
+  applyLevelTheme(0);
+}
+
+/* ════════════ LEVEL SELECT ════════════ */
+const LEVEL_CLASS=['lc-1','lc-2','lc-3','lc-4'];
+
+function buildLevelGrid(){
+  const grid=document.getElementById('level-grid');
+  grid.innerHTML='';
+  LEVELS.forEach((lv,i)=>{
+    const done=state.completedLevels.includes(i);
+    // Level 0 always unlocked; others unlock after previous is done
+    const locked=i>0&&!state.completedLevels.includes(i-1);
+    const card=document.createElement('button');
+    card.className='level-card '+LEVEL_CLASS[i]+(locked?' lc-locked':'');
+    card.style.setProperty('--ld',(i*.15)+'s');
+    card.innerHTML=`
+      <span class="lc-icon">${lv.icon}</span>
+      <div class="lc-name">MUNDO ${lv.id}</div>
+      <div class="lc-name" style="font-size:9px;margin-top:4px">${lv.name}</div>
+      <div class="lc-sub">${done?'✓ COMPLETADO':'8 MISIONES'}${locked?' — BLOQUEADO':''}</div>
+      <div class="lc-badge" style="color:${done?'#00e676':'#666688'}">${done?'DONE':'● ● ● ●'}</div>
+    `;
+    if(!locked) card.onclick=()=>showLevelIntro(i);
+    grid.appendChild(card);
+  });
+}
+
+/* ════════════ LEVEL INTRO ════════════ */
+function showLevelIntro(li){
+  sfxClick();
+  state.currentLevel=li;
+  const lv=LEVELS[li];
+  applyLevelTheme(li);
+
+  document.getElementById('intro-icon').textContent=lv.icon;
+  document.getElementById('intro-title').textContent=`MUNDO ${lv.id}: ${lv.name}`;
+  document.getElementById('intro-sub').textContent=lv.desc;
+
+  const obj=document.getElementById('intro-obj');
+  obj.innerHTML=`<div class="intro-obj-title">▸ OBJETIVOS DEL MUNDO:</div>`+
+    lv.objectives.map(o=>`<div class="intro-obj-item">★ ${o}</div>`).join('');
+
+  // Update marquee
+  const marqueeTexts={
+    0:'★ MUNDO 1: AHORRO ★ APRENDE A GUARDAR TU DINERO ★ EL AHORRO ES TU ESCUDO ★ ',
+    1:'★ MUNDO 2: GASTOS ★ CONTROLA LO QUE SALE ★ PRESUPUESTA COMO UN PRO ★ ',
+    2:'★ MUNDO 3: NEGOCIO ★ CREA TU PROPIO INGRESO ★ PIENSA COMO EMPRENDEDOR ★ ',
+    3:'★ MUNDO 4: INVERSION ★ HAZ QUE TU DINERO TRABAJE ★ CONSTRUYE RIQUEZA ★ ',
+  };
+  document.getElementById('marquee-txt').textContent=(marqueeTexts[li]||'').repeat(3);
+
+  showScreen('intro-screen');
+}
+
+/* ════════════ START LEVEL ════════════ */
+function startLevel(){
+  sfxStart();
+  const li=state.currentLevel;
+  state.scene=0;
+  state.money=state.totalMoney;
+  state.savings=state.totalSavings;
+  state.score=0;
+  state.answered=false;
+
+  const lv=LEVELS[li];
+  applyLevelTheme(li);
+
+  document.getElementById('world-name-hud').textContent=lv.name;
+  document.getElementById('prog-icon').textContent=lv.icon;
+
+  showScreen('game-screen');
+  render();
+}
+
+/* ════════════ RENDER ════════════ */
+function render(){
+  const li=state.currentLevel;
+  const lv=LEVELS[li];
+  const s=lv.scenes[state.scene];
+  const n=state.scene+1;
+  const pct=Math.round((state.scene/lv.scenes.length)*100);
+
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-label').textContent=`M${lv.id}-${n}/${lv.scenes.length}`;
+  document.getElementById('prog-pct').textContent=pct+'%';
+  document.getElementById('level-badge').textContent=`${lv.name} ${n}/${lv.scenes.length}`;
+
+  // lives visual
+  const hearts=document.querySelectorAll('#lives-row .heart');
+  const livePct=Math.ceil((n/lv.scenes.length)*3);
+  hearts.forEach((h,i)=>h.className='heart'+(i>=livePct?' empty':''));
+
+  updHud();
+
+  document.getElementById('scene-container').innerHTML=`
+    <div class="q-card">
+      <div class="q-header">
+        <div class="q-emoji-box">${s.emoji}</div>
+        <div class="q-meta">
+          <div class="q-num">▸ MUNDO ${lv.id}: ${lv.name} — MISION ${n}</div>
+          <div class="q-title">${s.title}</div>
+        </div>
+      </div>
+      <div class="q-desc">${s.desc}<span class="dialog-cursor"></span></div>
+      <div class="choices">
+        ${s.choices.map((c,i)=>`
+          <button class="choice-btn" id="cb${i}" onclick="pick(${i})">
+            <div class="c-title">${String.fromCharCode(65+i)}. ${c.text}</div>
+            <div class="c-hint">▸ ${c.hint}</div>
+          </button>`).join('')}
+      </div>
+      <div class="feedback" id="fb"></div>
+      <div class="tip-box" id="tb">${s.tip}</div>
+      <button class="btn-next blue" id="bn" onclick="nextScene()">
+        ${state.scene<lv.scenes.length-1?'▶ SIGUIENTE MISION':'▶ COMPLETAR MUNDO'}
+      </button>
+    </div>`;
+}
+
+/* ════════════ PICK ════════════ */
+function pick(i){
+  if(state.answered)return;
+  state.answered=true;sfxClick();
+  const lv=LEVELS[state.currentLevel];
+  const s=lv.scenes[state.scene];
+  const c=s.choices[i];
+
+  state.money+=c.money;state.savings+=c.savings;state.score+=c.score;
+  if(state.money<0)state.money=0;if(state.savings<0)state.savings=0;
+  updHud();
+
+  c.quality==='good'?sfxGood():c.quality==='bad'?sfxBad():sfxOk();
+  if(c.quality==='good')sfxCoin();
+  scoreFlash(c.score,c.quality);spawnParticles(c.quality);
+
+  document.querySelectorAll('.choice-btn').forEach((b,j)=>{
+    if(j!==i)b.classList.add('dimmed');else b.classList.add('chosen');b.onclick=null;
+  });
+
+  const icons={good:'[ ✓ CORRECTO ]',bad:'[ ✗ INCORRECTO ]',ok:'[ ~ ACEPTABLE ]'};
+  const fb=document.getElementById('fb');
+  fb.className='feedback '+c.quality;
+  fb.innerHTML=`<div class="fb-head">${icons[c.quality]}</div>${c.fb}`;
+  fb.style.display='block';
+  document.getElementById('tb').style.display='block';
+  document.getElementById('bn').style.display='block';
+}
+
+/* ════════════ NEXT SCENE ════════════ */
+function nextScene(){
+  sfxClick();
+  state.scene++;state.answered=false;
+  const lv=LEVELS[state.currentLevel];
+  if(state.scene>=lv.scenes.length) levelComplete();
+  else render();
+}
+
+/* ════════════ LEVEL COMPLETE ════════════ */
+function levelComplete(){
+  sfxLevelUp();spawnParticles('good');
+  setTimeout(()=>spawnParticles('good'),400);setTimeout(()=>spawnParticles('good'),800);
+
+  const li=state.currentLevel;
+  const lv=LEVELS[li];
+
+  // save progress
+  if(!state.completedLevels.includes(li))state.completedLevels.push(li);
+  state.totalScore+=state.score;
+  state.totalMoney=state.money;
+  state.totalSavings=state.savings;
+
+  const msgs=[
+    'DOMINAS EL ARTE DEL AHORRO.\nTU FUTURO FINANCIERO ESTA CONSTRUIDO\nSOBRE BASES SOLIDAS.',
+    'CONTROLAS TUS GASTOS COMO UN PRO.\nSABES DISTINGUIR NECESIDADES\nDE DESEOS. IMPARABLE!',
+    'TIENES MENTALIDAD EMPRENDEDORA.\nSABES CREAR VALOR Y\nHACER CRECER UN NEGOCIO.',
+    'ENTIENDES EL PODER DE LA INVERSION.\nTU DINERO TRABAJARA PARA TI\nPOR SIEMPRE.'
+  ];
+
+  document.getElementById('lc-emoji').textContent=['🏅','🥈','🥇','🏆'][Math.min(li,3)];
+  document.getElementById('lc-title').textContent=`MUNDO ${lv.id} COMPLETADO: ${lv.name}!`;
+  document.getElementById('lc-msg').textContent=msgs[li]||'NIVEL COMPLETADO!';
+  document.getElementById('lc-money').textContent=fmt(state.money);
+  document.getElementById('lc-savings').textContent=fmt(state.savings);
+  document.getElementById('lc-score').textContent=state.score+' PTS';
+
+  applyLevelTheme(li);
+
+  // Check if all levels done
+  if(state.completedLevels.length>=LEVELS.length){
+    setTimeout(()=>showFinalEnd(),2000);
+  }else{
+    showScreen('levelcomplete-screen');
+  }
+}
+
+/* ════════════ FINAL END ════════════ */
+function showFinalEnd(){
+  showScreen('end-screen');sfxWin();
+  spawnParticles('good');setTimeout(()=>spawnParticles('good'),500);
+  setTimeout(()=>spawnParticles('good'),1000);
+
+  let e,t,m;
+  const ts=state.totalScore;
+  if(ts>=500){e='🏆';t='!! MAESTRO FINANCIERO !!';
+    m='COMPLETASTE LOS 4 MUNDOS CON MAESTRIA.\nTU CONOCIMIENTO FINANCIERO ES LEGENDARIO.\nRANGO: S — GURU DEL DINERO.';}
+  else if(ts>=380){e='🌟';t='!! EXPERTO FINANCIERO !!';
+    m='EXCELENTE DOMINIO DE LAS FINANZAS.\nSIGUE APRENDIENDO PARA ALCANZAR LA MAESTRIA.\nRANGO: A — EXPERTO AVANZADO.';}
+  else if(ts>=260){e='🎖️';t='!! GESTOR FINANCIERO !!';
+    m='BUEN MANEJO DE LOS 4 MUNDOS.\nMERCE SEGUIR PRACTICANDO PARA PERFECCIONAR.\nRANGO: B — GESTOR COMPETENTE.';}
+  else{e='🪖';t='!! ESTUDIANTE FINANCIERO !!';
+    m='COMPLETASTE EL CAMINO. CADA ERROR\nFUE UNA LECCION VALIOSA.\nRANGO: C — APRENDIZ DETERMINADO.';}
+
+  document.getElementById('end-emoji').textContent=e;
+  document.getElementById('end-title').textContent=t;
+  document.getElementById('end-msg').textContent=m;
+  document.getElementById('fin-money').textContent=fmt(state.totalMoney);
+  document.getElementById('fin-savings').textContent=fmt(state.totalSavings);
+  document.getElementById('fin-score').textContent=state.totalScore+' PTS';
+}
+
+function updHud(){
+  document.getElementById('hud-money').textContent=fmt(state.money);
+  document.getElementById('hud-savings').textContent=fmt(state.savings);
+  document.getElementById('hud-score').textContent=String(state.score).padStart(3,'0');
+}
+</script>
+</body>
+</html>
