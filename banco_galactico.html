@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🚀 Banco Galáctico</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --deep:    #04060f;
+      --space:   #080d1f;
+      --nebula1: #6c11c2;
+      --nebula2: #1a2eaa;
+      --nebula3: #b0145a;
+      --cyan:    #00e5ff;
+      --pink:    #ff2d8a;
+      --purple:  #a855f7;
+      --gold:    #ffd84d;
+      --green:   #00ffb3;
+      --text:    #e8eeff;
+      --muted:   #7a8fc4;
+      --r:       16px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; min-height: 100vh;
+      font-family: 'Exo 2', sans-serif;
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* ══ SPACE BACKGROUND ══ */
+    body {
+      background: var(--deep);
+      position: relative;
+    }
+
+    /* Nebula blobs */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::before {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(108,17,194,.45) 0%, transparent 70%);
+      top: -150px; left: -150px;
+      animation: driftA 18s ease-in-out infinite alternate;
+    }
+    body::after {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(176,20,90,.35) 0%, transparent 70%);
+      bottom: -120px; right: -100px;
+      animation: driftB 22s ease-in-out infinite alternate;
+    }
+    @keyframes driftA { to { transform: translate(60px,80px) scale(1.1); } }
+    @keyframes driftB { to { transform: translate(-60px,-50px) scale(.9); } }
+
+    /* Extra nebula */
+    .nebula-extra {
+      position: fixed; border-radius: 50%; filter: blur(100px); pointer-events: none; z-index: 0;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(26,46,170,.3) 0%, transparent 70%);
+      top: 40%; right: -80px;
+      animation: driftC 14s ease-in-out infinite alternate;
+    }
+    @keyframes driftC { to { transform: translateY(-80px); } }
+
+    /* Stars canvas */
+    #stars-canvas {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    }
+
+    /* ══ LAYOUT ══ */
+    #game {
+      position: relative; z-index: 1;
+      max-width: 700px; margin: 0 auto;
+      padding: 28px 18px 60px;
+    }
+
+    /* ══ SCREENS ══ */
+    .screen { display: none; }
+    .screen.active { display: block; animation: fadeUp .5s cubic-bezier(.22,.68,0,1.2); }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(28px)} to{opacity:1;transform:none} }
+
+    /* ══════════════════════════
+       PLANET DECO (START)
+    ══════════════════════════ */
+    .planets-deco {
+      position: relative; height: 120px; margin-bottom: -20px;
+      display: flex; justify-content: center; align-items: flex-end; gap: 0;
+    }
+    .planet {
+      border-radius: 50%; position: absolute; bottom: 0;
+      animation: floatP var(--dur, 4s) ease-in-out infinite alternate;
+    }
+    .planet-1 {
+      width: 80px; height: 80px;
+      background: radial-gradient(circle at 35% 35%, #ff5faa, #7b0035);
+      box-shadow: 0 0 30px rgba(255,45,138,.5), inset -12px -12px 20px rgba(0,0,0,.4);
+      left: 10%; --dur: 3.8s;
+    }
+    .planet-2 {
+      width: 60px; height: 60px;
+      background: radial-gradient(circle at 35% 30%, #60d4ff, #0b3a8c);
+      box-shadow: 0 0 24px rgba(0,229,255,.4), inset -10px -10px 16px rgba(0,0,0,.4);
+      right: 12%; bottom: 10px; --dur: 5s;
+    }
+    .planet-ring {
+      width: 100px; height: 20px;
+      background: transparent;
+      border: 4px solid rgba(160,120,255,.5);
+      border-radius: 50%;
+      position: absolute;
+      bottom: 28px; right: 9%;
+      transform: rotateX(60deg);
+    }
+    .planet-3 {
+      width: 40px; height: 40px;
+      background: radial-gradient(circle at 35% 30%, #ffe86b, #b85800);
+      box-shadow: 0 0 18px rgba(255,216,77,.5), inset -8px -8px 12px rgba(0,0,0,.4);
+      left: 28%; bottom: 20px; --dur: 4.5s;
+    }
+    @keyframes floatP { to { transform: translateY(-14px); } }
+
+    /* ══════════════════════════
+       START SCREEN
+    ══════════════════════════ */
+    .start-card {
+      background: linear-gradient(145deg, rgba(15,20,50,.9), rgba(8,13,35,.95));
+      border: 1.5px solid rgba(168,85,247,.35);
+      border-radius: 24px;
+      padding: 2.5rem 2rem;
+      text-align: center;
+      box-shadow: 0 0 60px rgba(108,17,194,.25), 0 24px 60px rgba(0,0,0,.6);
+      position: relative;
+      overflow: hidden;
+    }
+    .start-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(168,85,247,.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .rocket-icon {
+      font-size: 64px; display: block;
+      animation: rocketBounce 2.5s ease-in-out infinite;
+      margin-bottom: 1rem; filter: drop-shadow(0 0 20px rgba(0,229,255,.6));
+    }
+    @keyframes rocketBounce {
+      0%,100% { transform: translateY(0) rotate(-10deg); }
+      50%      { transform: translateY(-18px) rotate(-10deg); }
+    }
+
+    .start-card h1 {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(1.4rem, 5vw, 2.2rem);
+      font-weight: 900;
+      background: linear-gradient(135deg, #00e5ff, #a855f7, #ff2d8a);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: .4rem;
+      letter-spacing: .04em;
+    }
+    .start-card .tagline {
+      font-size: .95rem; color: var(--muted); line-height: 1.7; margin-bottom: 1.8rem;
+    }
+    .start-card .tagline strong { color: var(--green); }
+
+    .chips {
+      display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 2rem;
+    }
+    .chip {
+      background: rgba(168,85,247,.12);
+      border: 1px solid rgba(168,85,247,.3);
+      border-radius: 999px; padding: 5px 14px;
+      font-size: 12px; font-weight: 700; color: var(--purple);
+      letter-spacing: .03em;
+    }
+
+    .btn-launch {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 15px 44px;
+      background: linear-gradient(135deg, #a855f7, #6c11c2);
+      border: none; border-radius: 999px;
+      font-family: 'Orbitron', monospace;
+      font-size: 1rem; font-weight: 700; color: #fff;
+      cursor: pointer; letter-spacing: .06em;
+      box-shadow: 0 0 30px rgba(168,85,247,.6), 0 8px 24px rgba(0,0,0,.4);
+      transition: transform .15s, box-shadow .15s;
+    }
+    .btn-launch:hover {
+      transform: translateY(-4px) scale(1.03);
+      box-shadow: 0 0 50px rgba(168,85,247,.8), 0 12px 32px rgba(0,0,0,.4);
+    }
+    .btn-launch:active { transform: translateY(0) scale(.98); }
+
+    /* ══════════════════════════
+       HUD
+    ══════════════════════════ */
+    .hud {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 14px;
+    }
+    .hud-cell {
+      background: rgba(8,13,35,.8);
+      border: 1px solid rgba(0,229,255,.15);
+      border-radius: 12px; padding: 10px 8px; text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .hud-cell::after {
+      content:''; position:absolute; bottom:0; left:0; right:0; height:2px;
+      background: var(--c, var(--cyan));
+      box-shadow: 0 0 8px var(--c, var(--cyan));
+    }
+    .hud-cell.money   { --c: var(--green); }
+    .hud-cell.savings { --c: var(--cyan);  }
+    .hud-cell.score   { --c: var(--gold);  }
+    .hud-label {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .1em; color: var(--muted); margin-bottom: 4px;
+    }
+    .hud-val {
+      font-family: 'Orbitron', monospace;
+      font-size: 1.1rem; font-weight: 700;
+    }
+    .hud-cell.money   .hud-val { color: var(--green); text-shadow: 0 0 12px rgba(0,255,179,.5); }
+    .hud-cell.savings .hud-val { color: var(--cyan);  text-shadow: 0 0 12px rgba(0,229,255,.5); }
+    .hud-cell.score   .hud-val { color: var(--gold);  text-shadow: 0 0 12px rgba(255,216,77,.5); }
+
+    /* Progress */
+    .prog-wrap { margin-bottom: 16px; }
+    .prog-info { display:flex; justify-content:space-between; font-size:11px; font-weight:700; color:var(--muted); margin-bottom:6px; }
+    .prog-bar  { height:8px; background:rgba(255,255,255,.06); border-radius:99px; overflow:hidden; position:relative; }
+    .prog-fill {
+      height:100%; border-radius:99px;
+      background: linear-gradient(90deg, #a855f7, #00e5ff);
+      box-shadow: 0 0 12px rgba(168,85,247,.6);
+      transition: width .6s cubic-bezier(.34,1,.64,1);
+      position: relative;
+    }
+    .prog-fill::after {
+      content:''; position:absolute; right:-2px; top:50%; transform:translateY(-50%);
+      width:14px; height:14px; border-radius:50%;
+      background: #fff; box-shadow: 0 0 10px rgba(168,85,247,1);
+    }
+
+    /* ══════════════════════════
+       QUESTION CARD
+    ══════════════════════════ */
+    .q-card {
+      background: linear-gradient(145deg, rgba(12,18,44,.95), rgba(6,10,28,.98));
+      border: 1.5px solid rgba(168,85,247,.25);
+      border-radius: 20px; padding: 1.75rem 1.5rem;
+      box-shadow: 0 0 40px rgba(108,17,194,.15), 0 20px 50px rgba(0,0,0,.5);
+      animation: slideIn .4s cubic-bezier(.22,.68,0,1.1);
+      position: relative; overflow: hidden;
+    }
+    .q-card::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:1px;
+      background: linear-gradient(90deg, transparent, rgba(168,85,247,.6), transparent);
+    }
+    @keyframes slideIn { from{opacity:0;transform:translateY(22px) scale(.98)} to{opacity:1;transform:none} }
+
+    .q-header {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 1.2rem;
+    }
+    .q-emoji-wrap {
+      width: 68px; height: 68px; flex-shrink: 0; border-radius: 18px;
+      background: linear-gradient(135deg, rgba(168,85,247,.2), rgba(0,229,255,.1));
+      border: 1.5px solid rgba(168,85,247,.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 34px;
+      box-shadow: 0 0 20px rgba(168,85,247,.2);
+    }
+    .q-num {
+      font-family: 'Orbitron', monospace;
+      font-size: 10px; font-weight: 700; color: var(--purple);
+      letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px;
+    }
+    .q-title {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(.95rem,3vw,1.2rem); font-weight: 700; color: var(--text);
+    }
+
+    .q-desc {
+      font-size: 14px; color: #b0bde8; line-height: 1.75;
+      background: rgba(0,229,255,.04);
+      border: 1px solid rgba(0,229,255,.1);
+      border-left: 3px solid rgba(0,229,255,.5);
+      border-radius: 10px; padding: 13px 15px;
+      margin-bottom: 1.25rem;
+    }
+
+    /* Choices */
+    .choices { display: flex; flex-direction: column; gap: 10px; }
+    .choice-btn {
+      background: rgba(168,85,247,.06);
+      border: 1.5px solid rgba(168,85,247,.2);
+      border-radius: 12px; padding: 13px 16px;
+      text-align: left; cursor: pointer;
+      transition: all .18s ease;
+      position: relative; overflow: hidden;
+    }
+    .choice-btn::before {
+      content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+      background: linear-gradient(180deg, var(--cyan), var(--purple));
+      border-radius: 3px 0 0 3px; opacity:0; transition: opacity .18s;
+    }
+    .choice-btn:hover {
+      background: rgba(168,85,247,.14);
+      border-color: rgba(168,85,247,.5);
+      transform: translateX(5px);
+      box-shadow: 0 0 20px rgba(168,85,247,.2);
+    }
+    .choice-btn:hover::before { opacity:1; }
+    .c-title { font-weight: 700; font-size: 14px; color: var(--text); margin-bottom: 3px; }
+    .c-hint  { font-size: 12px; color: var(--muted); }
+    .choice-btn.dimmed { opacity:.3; cursor:default; transform:none !important; box-shadow:none !important; }
+    .choice-btn.chosen { border-color: rgba(0,229,255,.5); background: rgba(0,229,255,.07); }
+
+    /* Feedback */
+    .feedback {
+      display:none; border-radius:12px; padding:14px 16px;
+      margin-top:1rem; font-size:14px; line-height:1.75; font-weight:600;
+      animation: popGlow .4s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes popGlow { from{opacity:0;transform:scale(.9)} to{opacity:1;transform:none} }
+    .feedback.good {
+      background: rgba(0,255,179,.08);
+      border: 1.5px solid rgba(0,255,179,.3);
+      color: #7fffd4;
+      box-shadow: 0 0 20px rgba(0,255,179,.1);
+    }
+    .feedback.bad {
+      background: rgba(255,45,138,.08);
+      border: 1.5px solid rgba(255,45,138,.3);
+      color: #ff9ec8;
+      box-shadow: 0 0 20px rgba(255,45,138,.1);
+    }
+    .feedback.ok {
+      background: rgba(255,216,77,.07);
+      border: 1.5px solid rgba(255,216,77,.25);
+      color: #fff3a3;
+      box-shadow: 0 0 20px rgba(255,216,77,.08);
+    }
+    .fb-icon { font-size:22px; margin-bottom:6px; display:block; }
+
+    .tip-box {
+      display:none; margin-top:10px;
+      background: rgba(0,229,255,.05);
+      border: 1px solid rgba(0,229,255,.2);
+      border-radius:10px; padding:12px 15px;
+      font-size:13px; color:#80d8ff; line-height:1.6;
+    }
+
+    .btn-next {
+      display:none; width:100%; margin-top:16px; padding:14px;
+      background: linear-gradient(135deg, rgba(168,85,247,.25), rgba(0,229,255,.15));
+      border: 1.5px solid rgba(168,85,247,.4);
+      border-radius:999px;
+      font-family:'Orbitron',monospace; font-size:.95rem; font-weight:700;
+      color: var(--cyan); cursor:pointer; letter-spacing:.06em;
+      box-shadow: 0 0 20px rgba(168,85,247,.2);
+      transition: all .18s;
+    }
+    .btn-next:hover {
+      background: linear-gradient(135deg, rgba(168,85,247,.4), rgba(0,229,255,.25));
+      box-shadow: 0 0 35px rgba(168,85,247,.4);
+      transform: translateY(-2px);
+    }
+
+    /* ══════════════════════════
+       END SCREEN
+    ══════════════════════════ */
+    .end-card {
+      background: linear-gradient(145deg, rgba(12,18,44,.95), rgba(6,10,28,.98));
+      border: 1.5px solid rgba(168,85,247,.35);
+      border-radius: 24px; padding: 2.5rem 1.75rem;
+      text-align: center;
+      box-shadow: 0 0 60px rgba(108,17,194,.3), 0 24px 60px rgba(0,0,0,.6);
+      position: relative; overflow: hidden;
+    }
+    .end-card::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:1px;
+      background: linear-gradient(90deg, transparent, rgba(0,229,255,.7), transparent);
+    }
+    .trophy-wrap { font-size:80px; display:block; margin-bottom:.5rem; animation: spin3d 1s cubic-bezier(.34,1.56,.64,1); }
+    @keyframes spin3d { from{transform:scale(0) rotateY(90deg)} to{transform:none} }
+
+    .end-title {
+      font-family:'Orbitron',monospace; font-weight:900;
+      font-size:clamp(1.3rem,4vw,1.8rem);
+      background: linear-gradient(135deg, var(--gold), var(--pink), var(--purple));
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+      margin-bottom:.5rem;
+    }
+    .end-msg { font-size:14px; color:var(--muted); margin-bottom:1.5rem; line-height:1.7; }
+
+    .end-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:1.5rem 0; }
+    .end-stat {
+      background: rgba(168,85,247,.08);
+      border: 1px solid rgba(168,85,247,.2);
+      border-radius:14px; padding:14px 8px;
+    }
+    .end-sv {
+      font-family:'Orbitron',monospace; font-size:1.2rem; font-weight:700; color:var(--text);
+    }
+    .end-sl { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-top:4px; }
+
+    .btn-restart {
+      padding:13px 36px;
+      background: transparent;
+      border: 1.5px solid rgba(168,85,247,.4);
+      border-radius:999px;
+      font-family:'Orbitron',monospace; font-size:.9rem; font-weight:700;
+      color:var(--purple); cursor:pointer; letter-spacing:.06em;
+      transition: all .18s;
+      box-shadow: 0 0 16px rgba(168,85,247,.2);
+    }
+    .btn-restart:hover {
+      background: rgba(168,85,247,.15);
+      box-shadow: 0 0 30px rgba(168,85,247,.4);
+    }
+
+    /* ══ SOUND BUTTON ══ */
+    .snd-btn {
+      position:fixed; top:14px; right:14px; z-index:100;
+      background:rgba(8,13,35,.8); border:1px solid rgba(168,85,247,.3);
+      border-radius:999px; padding:8px 14px;
+      font-size:12px; font-weight:700; color:var(--muted);
+      cursor:pointer; transition:background .15s;
+      font-family:'Exo 2',sans-serif;
+    }
+    .snd-btn:hover { background:rgba(168,85,247,.15); color:var(--purple); }
+
+    /* ══ PARTICLES ══ */
+    .p { position:fixed; pointer-events:none; z-index:999; font-size:22px; animation:pUp 1.4s ease forwards; }
+    @keyframes pUp { 0%{opacity:1;transform:translateY(0) scale(1)} 100%{opacity:0;transform:translateY(-140px) scale(1.5)} }
+
+    /* ══ SCANLINE overlay ══ */
+    .scanlines {
+      position:fixed; inset:0; z-index:0; pointer-events:none;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.04) 2px, rgba(0,0,0,.04) 4px);
+    }
+  </style>
+</head>
+<body>
+
+<div class="nebula-extra"></div>
+<div class="scanlines"></div>
+<canvas id="stars-canvas"></canvas>
+<button class="snd-btn" id="snd-btn" onclick="toggleSound()">🔊 Sonido</button>
+
+<div id="game">
+
+  <!-- START -->
+  <div id="start-screen" class="screen active">
+    <div class="planets-deco">
+      <div class="planet planet-1"></div>
+      <div class="planet planet-3"></div>
+      <div class="planet planet-2"></div>
+      <div class="planet-ring"></div>
+    </div>
+    <div class="start-card">
+      <span class="rocket-icon">🚀</span>
+      <h1>BANCO GALÁCTICO</h1>
+      <p class="tagline">
+        Tienes <strong>$50.000</strong> créditos espaciales.<br>
+        Navega 8 misiones financieras y domina el universo del dinero.
+      </p>
+      <div class="chips">
+        <span class="chip">🛸 8 Misiones</span>
+        <span class="chip">💡 Conocimiento real</span>
+        <span class="chip">🏆 Clasificación estelar</span>
+      </div>
+      <button class="btn-launch" onclick="startGame()">
+        ▶ &nbsp;INICIAR MISIÓN
+      </button>
+    </div>
+  </div>
+
+  <!-- GAME -->
+  <div id="game-screen" class="screen">
+    <div class="hud">
+      <div class="hud-cell money">
+        <div class="hud-label">💵 Créditos</div>
+        <div class="hud-val" id="hud-money">$50.000</div>
+      </div>
+      <div class="hud-cell savings">
+        <div class="hud-label">🛰 Bóveda</div>
+        <div class="hud-val" id="hud-savings">$0</div>
+      </div>
+      <div class="hud-cell score">
+        <div class="hud-label">⭐ Puntos</div>
+        <div class="hud-val" id="hud-score">0</div>
+      </div>
+    </div>
+    <div class="prog-wrap">
+      <div class="prog-info">
+        <span id="prog-label">Misión 1 de 8</span>
+        <span id="prog-pct">0%</span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+    </div>
+    <div id="scene-container"></div>
+  </div>
+
+  <!-- END -->
+  <div id="end-screen" class="screen">
+    <div class="end-card">
+      <span class="trophy-wrap" id="end-emoji">🏆</span>
+      <div class="end-title" id="end-title"></div>
+      <p class="end-msg" id="end-msg"></p>
+      <div class="end-stats">
+        <div class="end-stat"><div class="end-sv" id="fin-money"></div><div class="end-sl">💵 Créditos</div></div>
+        <div class="end-stat"><div class="end-sv" id="fin-savings"></div><div class="end-sl">🛰 Bóveda</div></div>
+        <div class="end-stat"><div class="end-sv" id="fin-score"></div><div class="end-sl">⭐ Puntos</div></div>
+      </div>
+      <button class="btn-restart" onclick="startGame()">↺ &nbsp;NUEVA MISIÓN</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ═══════════════════════════
+   STAR FIELD
+═══════════════════════════ */
+(function(){
+  const c = document.getElementById('stars-canvas');
+  const ctx = c.getContext('2d');
+  let stars = [];
+  function resize(){ c.width=window.innerWidth; c.height=window.innerHeight; init(); }
+  function init(){
+    stars=[];
+    for(let i=0;i<220;i++){
+      stars.push({
+        x:Math.random()*c.width, y:Math.random()*c.height,
+        r:Math.random()*1.4+.2,
+        o:Math.random()*.8+.2,
+        s:Math.random()*.5+.3
+      });
+    }
+  }
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    const t=Date.now()/1000;
+    stars.forEach(s=>{
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle=`rgba(255,255,255,${s.o*(0.6+0.4*Math.sin(t*s.s+s.x))})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize',resize);
+  resize(); draw();
+})();
+
+/* ═══════════════════════════
+   AUDIO
+═══════════════════════════ */
+let AC=null, soundOn=true;
+function gc(){ if(!AC) AC=new(window.AudioContext||window.webkitAudioContext)(); return AC; }
+function tone(f,t,d,v=.28,dl=0){
+  if(!soundOn)return;
+  try{
+    const c=gc(),o=c.createOscillator(),g=c.createGain();
+    o.connect(g);g.connect(c.destination);
+    o.type=t; o.frequency.setValueAtTime(f,c.currentTime+dl);
+    g.gain.setValueAtTime(v,c.currentTime+dl);
+    g.gain.exponentialRampToValueAtTime(.001,c.currentTime+dl+d);
+    o.start(c.currentTime+dl); o.stop(c.currentTime+dl+d+.05);
+  }catch(e){}
+}
+const sGood  =()=>{ tone(523,'sine',.1,.22); tone(659,'sine',.12,.22,.11); tone(784,'sine',.22,.22,.22); };
+const sBad   =()=>{ tone(280,'sawtooth',.09,.18); tone(220,'sawtooth',.16,.18,.1); };
+const sOk    =()=>{ tone(440,'sine',.1,.2); tone(528,'sine',.15,.2,.12); };
+const sClick =()=>  tone(700,'sine',.06,.14);
+const sStart =()=>  [261,330,392,523].forEach((f,i)=>tone(f,'sine',.14,.22,i*.09));
+const sWin   =()=>  [523,659,784,1046,1318].forEach((f,i)=>tone(f,'sine',.18,.24,i*.11));
+function toggleSound(){
+  soundOn=!soundOn;
+  document.getElementById('snd-btn').textContent=soundOn?'🔊 Sonido':'🔇 Mudo';
+}
+
+/* ═══════════════════════════
+   PARTICLES
+═══════════════════════════ */
+function particles(q){
+  const e=q==='good'?['⭐','✨','💎','🌟','🚀']:q==='bad'?['💸','☄️','⚠️']:['👍','🌙','💡'];
+  for(let i=0;i<(q==='good'?7:3);i++){
+    setTimeout(()=>{
+      const p=document.createElement('div'); p.className='p';
+      p.textContent=e[Math.floor(Math.random()*e.length)];
+      p.style.left=(15+Math.random()*70)+'vw';
+      p.style.top=(25+Math.random()*45)+'vh';
+      document.body.appendChild(p);
+      setTimeout(()=>p.remove(),1500);
+    },i*130);
+  }
+}
+
+/* ═══════════════════════════
+   DATA
+═══════════════════════════ */
+const fmt=n=>'$'+Math.abs(n).toLocaleString('es-CO');
+
+const SCENES=[
+  {emoji:'🛒',title:'La mesada llegó',desc:'Recibes $50.000 de mesada. En el camino ves una tienda con snacks que te encantan. ¿Qué haces con tus créditos?',choices:[
+    {text:'Guardar todo en mi alcancía',hint:'Sin gastar nada ahora',money:0,savings:50000,score:20,quality:'good',fb:'¡Excelente! Guardar el 100% demuestra mucha disciplina. El ahorro es la base de las finanzas.'},
+    {text:'Gastar $10.000 y guardar $40.000',hint:'Un poco para hoy, más para después',money:10000,savings:40000,score:15,quality:'good',fb:'Muy bien. Guardar el 80% es una decisión excelente. ¡Sigue así!'},
+    {text:'Gastar $25.000 y guardar $25.000',hint:'Mitad y mitad',money:25000,savings:25000,score:10,quality:'ok',fb:'Bien. Intenta ahorrar más que lo que gastas para crecer más rápido.'},
+    {text:'Gastar todo en snacks',hint:'Hoy me toca disfrutar',money:50000,savings:0,score:0,quality:'bad',fb:'Sin ahorros, cuando necesites dinero no tendrás nada. El ahorro te protege.'}
+  ],tip:'💡 Regla de oro: intenta ahorrar al menos el 20% de lo que recibes.'},
+  {emoji:'🎮',title:'El videojuego nuevo',desc:'Tu amigo tiene el videojuego más popular. Cuesta $80.000. Solo tienes lo que has guardado hasta ahora.',choices:[
+    {text:'No lo compro, no tengo suficiente',hint:'Ahorro primero',money:0,savings:0,score:20,quality:'good',fb:'¡Perfecto! No gastar más de lo que tienes es una regla fundamental de las finanzas.'},
+    {text:'Pido prestado a mis papás',hint:'Lo pago después',money:-80000,savings:0,score:5,quality:'bad',fb:'Pedir prestado es una deuda. Si no la pagas a tiempo, tendrás menos dinero en el futuro.'},
+    {text:'Espero y ahorro hasta tenerlo',hint:'Meta de ahorro',money:0,savings:0,score:18,quality:'good',fb:'¡Excelente! Ahorrar para comprar algo se llama "ahorro con propósito".'},
+    {text:'Compro versión digital más barata ($30.000)',hint:'Busco alternativas',money:-30000,savings:0,score:12,quality:'ok',fb:'Buena decisión comparar precios. ¡Eres un comprador inteligente!'}
+  ],tip:'💡 Antes de comprar, pregúntate: ¿lo necesito o solo lo quiero?'},
+  {emoji:'🌱',title:'La inversión de la abuela',desc:'Tu abuela te da $30.000 y dice que si los inviertes en un mes te darán un 10% más. ¿Qué haces?',choices:[
+    {text:'Invierto los $30.000',hint:'Ganaré $3.000 extra',money:33000,savings:0,score:20,quality:'good',fb:'¡Genial! Invertir hace que el dinero trabaje para ti. Ese 10% se llama "rendimiento".'},
+    {text:'Invierto la mitad, guardo la otra',hint:'Mitad inversión, mitad seguro',money:15000,savings:15000,score:15,quality:'good',fb:'Muy bien. Diversificar es una estrategia inteligente.'},
+    {text:'Lo gasto todo ahora',hint:'Ya quiero el dinero',money:30000,savings:0,score:0,quality:'bad',fb:'Perdiste la oportunidad de ganar $3.000 sin hacer nada. ¡La inversión hace crecer el dinero!'},
+    {text:'No invierto, es arriesgado',hint:'Prefiero guardarlo',money:0,savings:30000,score:8,quality:'ok',fb:'Es válido ser cauteloso. Pero cuando la fuente es confiable, invertir pequeñas cantidades es buena práctica.'}
+  ],tip:'💡 Invertir = hacer que tu dinero genere más dinero. ¡El tiempo es tu mejor aliado!'},
+  {emoji:'📋',title:'El presupuesto del mes',desc:'Tienes $100.000. Necesitas: onces ($20.000), útiles ($30.000), y quieres ahorrar. ¿Cómo lo distribuyes?',choices:[
+    {text:'Onces + útiles + $50.000 de ahorro',hint:'$20k + $30k + $50k ahorros',money:0,savings:50000,score:20,quality:'good',fb:'¡Perfecto! Cubriste necesidades y ahorraste el 50%. Eso se llama "presupuesto equilibrado".'},
+    {text:'Solo lo necesario, ahorro el resto',hint:'$50k gastos, $50k guardados',money:0,savings:50000,score:18,quality:'good',fb:'¡Muy bien! Priorizar necesidades antes que deseos es la base del presupuesto inteligente.'},
+    {text:'Gasto todo sin planear',hint:'A ver hasta dónde me alcanza',money:100000,savings:0,score:0,quality:'bad',fb:'Sin un plan, el dinero desaparece. Un presupuesto evita sorpresas.'},
+    {text:'Onces + útiles + regalo para amigo',hint:'$20k + $30k + $20k regalo',money:70000,savings:0,score:5,quality:'ok',fb:'Es bonito ser generoso, pero primero cubre tus necesidades y ahorra.'}
+  ],tip:'💡 Presupuesto = lista de gastos ANTES de gastar. ¡Planear es poder!'},
+  {emoji:'💰',title:'El poder del ahorro',desc:'Llevas 3 meses ahorrando $20.000/mes. Ya tienes $60.000. Tu mascota necesita ir al veterinario: $55.000.',choices:[
+    {text:'Uso mis ahorros de emergencia',hint:'Para eso ahorraba',money:0,savings:-55000,score:20,quality:'good',fb:'¡Exactamente! El "fondo de emergencia" te protege cuando más lo necesitas.'},
+    {text:'Pido prestado y no toco mis ahorros',hint:'Mejor mantener el ahorro',money:-55000,savings:0,score:5,quality:'bad',fb:'Endeudarse cuando tienes dinero disponible no es eficiente.'},
+    {text:'Uso $55.000 y me comprometo a reconstruir',hint:'Uso lo necesario y reconstruyo',money:0,savings:-55000,score:18,quality:'good',fb:'¡Muy bien! Usar el ahorro en emergencias y reconstruirlo es la decisión correcta.'},
+    {text:'No puedo pagar, no hago nada',hint:'Ignoro el problema',money:0,savings:0,score:-5,quality:'bad',fb:'¡Tenías el dinero! Ignorar emergencias tiene consecuencias.'}
+  ],tip:'💡 Fondo de emergencia = dinero para lo inesperado. Expertos recomiendan tener 3 meses de gastos.'},
+  {emoji:'📈',title:'Crecer el dinero',desc:'Tienes $80.000 ahorrados. En un CDT te darán un 5% extra en 3 meses. ¿Qué decides?',choices:[
+    {text:'Meto todo en el CDT',hint:'+$4.000 en 3 meses',money:84000,savings:0,score:18,quality:'good',fb:'¡Muy bien! Un CDT es seguro y da rendimiento. Ideal para principiantes.'},
+    {text:'Meto la mitad, el resto queda libre',hint:'$40k en CDT, $40k disponible',money:42000,savings:40000,score:20,quality:'good',fb:'¡Excelente! Invertir parte y mantener liquidez es lo que hacen los expertos.'},
+    {text:'No me gusta esperar 3 meses',hint:'Quiero el dinero ya',money:80000,savings:0,score:3,quality:'bad',fb:'La paciencia en finanzas vale oro. Ganar $4.000 sin hacer nada es una gran decisión.'},
+    {text:'Pregunto más antes de decidir',hint:'Investigo la opción',money:80000,savings:0,score:15,quality:'ok',fb:'¡Buena actitud! Informarse antes de invertir es un hábito financiero muy sano.'}
+  ],tip:'💡 CDT = Certificado de Depósito a Término. El banco guarda tu dinero y te paga interés.'},
+  {emoji:'🛍️',title:'La trampa del descuento',desc:'Unos tenis costaban $200.000 y están en descuento: $120.000. Solo tienes $130.000 ahorrados.',choices:[
+    {text:'Los compro, ¡es un descuento enorme!',hint:'Me ahorro $80.000 vs precio original',money:-120000,savings:0,score:5,quality:'bad',fb:'Un descuento solo es buena idea si ibas a comprarlo de todas formas.'},
+    {text:'No los compro, no estaban planeados',hint:'Sigo mi plan original',money:0,savings:0,score:20,quality:'good',fb:'¡Excelente! Resistir la "trampa del descuento" es una habilidad financiera muy valiosa.'},
+    {text:'Los compro si los necesitaba de verdad',hint:'Evalúo si es necesidad real',money:-120000,savings:0,score:15,quality:'ok',fb:'Bien pensado. Si realmente los necesitabas y estaban en tu plan, un descuento sí conviene.'},
+    {text:'Espero a tener más dinero primero',hint:'No gasto casi todo mi ahorro',money:0,savings:0,score:18,quality:'good',fb:'¡Muy inteligente! Gastar casi todos tus ahorros por impulso te deja sin protección.'}
+  ],tip:'💡 Un descuento es bueno solo si la compra estaba planeada.'},
+  {emoji:'🎯',title:'Tu meta de ahorro',desc:'Quieres una bici que cuesta $300.000. Recibes $50.000 mensuales. ¿Cuál es tu plan?',choices:[
+    {text:'Ahorro $30.000/mes → compro en 10 meses',hint:'60% de ahorro mensual',money:0,savings:30000,score:20,quality:'good',fb:'¡Plan perfecto! Eso se llama "ahorro programado". ¡Eres un planificador!'},
+    {text:'Ahorro lo que sobre sin plan fijo',hint:'Guardar lo que quede',money:0,savings:10000,score:8,quality:'ok',fb:'Ahorrar "lo que sobre" casi nunca funciona. Es mejor fijar una cantidad primero.'},
+    {text:'Pido prestado y pago con la mesada',hint:'Deuda a largo plazo',money:300000,savings:-50000,score:2,quality:'bad',fb:'Una deuda grande con ingresos pequeños es muy difícil de pagar.'},
+    {text:'Busco hacer trabajos extra para ganar más',hint:'Aumento mis ingresos',money:20000,savings:20000,score:18,quality:'good',fb:'¡Brillante! Buscar ingresos extras es la mentalidad de un emprendedor.'}
+  ],tip:'💡 Ahorro programado = guardar una cantidad fija cada semana o mes para una meta específica.'}
+];
+
+let state={};
+
+function startGame(){
+  sStart();
+  state={scene:0,money:50000,savings:0,score:0,answered:false};
+  showScreen('game-screen'); render();
+}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function render(){
+  const s=SCENES[state.scene], n=state.scene+1, pct=Math.round((state.scene/SCENES.length)*100);
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-label').textContent=`Misión ${n} de ${SCENES.length}`;
+  document.getElementById('prog-pct').textContent=pct+'%';
+  updHud();
+  document.getElementById('scene-container').innerHTML=`
+    <div class="q-card">
+      <div class="q-header">
+        <div class="q-emoji-wrap">${s.emoji}</div>
+        <div>
+          <div class="q-num">▸ Misión ${n} de ${SCENES.length}</div>
+          <div class="q-title">${s.title}</div>
+        </div>
+      </div>
+      <div class="q-desc">${s.desc}</div>
+      <div class="choices">
+        ${s.choices.map((c,i)=>`
+          <button class="choice-btn" id="cb${i}" onclick="pick(${i})">
+            <div class="c-title">${c.text}</div>
+            <div class="c-hint">${c.hint}</div>
+          </button>`).join('')}
+      </div>
+      <div class="feedback" id="fb"></div>
+      <div class="tip-box" id="tb">${s.tip}</div>
+      <button class="btn-next" id="bn" onclick="next()">
+        ${state.scene<SCENES.length-1?'▶ SIGUIENTE MISIÓN':'▶ VER RESULTADOS'}
+      </button>
+    </div>`;
+}
+function pick(i){
+  if(state.answered)return; state.answered=true; sClick();
+  const s=SCENES[state.scene],c=s.choices[i];
+  state.money+=c.money; state.savings+=c.savings; state.score+=c.score;
+  if(state.money<0)state.money=0; if(state.savings<0)state.savings=0;
+  updHud();
+  c.quality==='good'?sGood():c.quality==='bad'?sBad():sOk();
+  particles(c.quality);
+  document.querySelectorAll('.choice-btn').forEach((b,j)=>{
+    if(j!==i)b.classList.add('dimmed'); else b.classList.add('chosen');
+    b.onclick=null;
+  });
+  const icons={good:'✅',bad:'❌',ok:'⚡'};
+  const fb=document.getElementById('fb');
+  fb.className='feedback '+c.quality;
+  fb.innerHTML=`<span class="fb-icon">${icons[c.quality]}</span>${c.fb}`;
+  fb.style.display='block';
+  document.getElementById('tb').style.display='block';
+  document.getElementById('bn').style.display='block';
+}
+function next(){
+  sClick(); state.scene++; state.answered=false;
+  state.scene>=SCENES.length?endGame():render();
+}
+function updHud(){
+  document.getElementById('hud-money').textContent=fmt(state.money);
+  document.getElementById('hud-savings').textContent=fmt(state.savings);
+  document.getElementById('hud-score').textContent=state.score;
+}
+function endGame(){
+  showScreen('end-screen'); sWin();
+  particles('good'); setTimeout(()=>particles('good'),500); setTimeout(()=>particles('good'),1000);
+  let e,t,m;
+  if(state.score>=140){e='🏆';t='¡Comandante Financiero!';m='Tomaste decisiones perfectas. Tu futuro financiero será brillante entre las estrellas.';}
+  else if(state.score>=100){e='🌟';t='¡Piloto Estelar!';m='Excelente manejo del dinero. Sigue practicando para alcanzar el rango supremo.';}
+  else if(state.score>=60){e='🛸';t='¡Explorador Espacial!';m='Vas por buen camino. Repasa los consejos de cada misión para mejorar.';}
+  else{e='🪐';t='¡Cadete en Entrenamiento!';m='Cada error es una lección. ¡Vuelve a volar y demuestra lo aprendido!';}
+  document.getElementById('end-emoji').textContent=e;
+  document.getElementById('end-title').textContent=t;
+  document.getElementById('end-msg').textContent=m;
+  document.getElementById('fin-money').textContent=fmt(state.money);
+  document.getElementById('fin-savings').textContent=fmt(state.savings);
+  document.getElementById('fin-score').textContent=state.score+' pts';
+}
+</script>
+</body>
+</html>
